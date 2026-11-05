@@ -149,3 +149,13 @@ export interface Contract {
 }
 
 export type ContractInput = Omit<Contract, 'id' | 'client'>;
+
+export interface DocumentTemplate {
+  id: string;
+  name: string;
+  file_path: string;
+  description: string;
+  created_at: string;
+}
+
+export type DocumentTemplateInput = Omit<DocumentTemplate, 'id' | 'created_at'>;
