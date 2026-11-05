@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { KeyRound, Plus } from 'lucide-react';
+import { FileText, KeyRound, Plus } from 'lucide-react';
 import ClientPicker from '@/components/ui/ClientPicker';
 import Modal from '@/components/ui/Modal';
 import FormField, { inputClassName } from '@/components/ui/FormField';
@@ -135,6 +135,51 @@ export default function WorkstationOperationFormModal({
 
   const hasClients = clients.length > 0;
 
+  const generateWordDocument = () => {
+    const clientName = clients.find((c) => c.id === values.client_id)?.name ?? '';
+    const rows: [string, string][] = [
+      ['Дата', values.operation_date],
+      ['Клиент', clientName],
+      ['Модель ПК', values.pc_model],
+      ['Версия ПО', values.pc_software_version],
+      ['Тип регистрации', values.is_cloud ? 'Облачная' : 'Токен'],
+      ['Токен', values.token_number],
+      ['Адрес', values.address],
+      ['Примечание', values.notes],
+    ];
+
+    const tableRows = rows
+      .map(
+        ([label, value]) => `
+        <tr>
+          <td style="border:1px solid #999;padding:6px 12px;background:#f2f2f2;font-weight:bold;width:35%;">${label}</td>
+          <td style="border:1px solid #999;padding:6px 12px;">${value || '—'}</td>
+        </tr>`,
+      )
+      .join('');
+
+    const html = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>${TYPE_TITLES[operationType]}</title></head>
+<body>
+<h2 style="text-align:center;">${TYPE_TITLES[operationType]}</h2>
+<table style="border-collapse:collapse;width:100%;font-family:Calibri,sans-serif;font-size:14px;">
+${tableRows}
+</table>
+</body>
+</html>`;
+
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${TYPE_TITLES[operationType]}.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Modal
       maxWidth="max-w-4xl"
@@ -156,6 +201,14 @@ export default function WorkstationOperationFormModal({
             className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? 'Сохранение...' : 'Сохранить'}
+          </button>
+          <button
+            type="button"
+            onClick={generateWordDocument}
+            className="inline-flex items-center gap-2 rounded-lg bg-slate-700 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800"
+          >
+            <FileText className="h-4 w-4" />
+            Печать документов
           </button>
         </>
       }
