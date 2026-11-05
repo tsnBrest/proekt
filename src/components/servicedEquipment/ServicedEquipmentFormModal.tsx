@@ -23,11 +23,12 @@ export default function ServicedEquipmentFormModal({
   onClose,
   onSaved,
 }: ServicedEquipmentFormModalProps) {
-  const [values, setValues] = useState<ServicedEquipmentInput>(() => ({
+  const [values, setValues] = useState<ServicedEquipmentInput & { installation_location: string }>(() => ({
     model: equipment?.model ?? '',
     serial_number: equipment?.serial_number ?? '',
     software_version: equipment?.software_version ?? '',
     client_id: equipment?.client_id ?? '',
+    installation_location: (equipment as (ServicedEquipment & { installation_location?: string }) | null)?.installation_location ?? '',
   }));
   const [models, setModels] = useState<EquipmentModel[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
@@ -57,18 +58,19 @@ export default function ServicedEquipmentFormModal({
     loadClients();
   }, [loadClients]);
 
-  const updateField = (key: keyof ServicedEquipmentInput, value: string) => {
+  const updateField = (key: keyof typeof values, value: string) => {
     setValues((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    const payload: ServicedEquipmentInput = {
+    const payload = {
       model: values.model.trim(),
       serial_number: values.serial_number.trim(),
       software_version: values.software_version.trim(),
       client_id: values.client_id || null,
+      installation_location: values.installation_location.trim(),
     };
 
     const nextErrors: FormErrors = {};
@@ -157,6 +159,16 @@ export default function ServicedEquipmentFormModal({
             value={values.software_version}
             onChange={(event) => updateField('software_version', event.target.value)}
             placeholder="Например, 5.6.2"
+          />
+        </FormField>
+
+        <FormField label="Место установки оборудования" htmlFor="se-installation-location">
+          <input
+            id="se-installation-location"
+            className={inputClassName}
+            value={values.installation_location}
+            onChange={(event) => updateField('installation_location', event.target.value)}
+            placeholder="Адрес или описание места установки"
           />
         </FormField>
 
