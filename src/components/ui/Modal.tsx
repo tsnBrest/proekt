@@ -6,9 +6,10 @@ interface ModalProps {
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  maxWidth?: string;
 }
 
-export default function Modal({ title, onClose, children, footer }: ModalProps) {
+export default function Modal({ title, onClose, children, footer, maxWidth = 'max-w-2xl' }: ModalProps) {
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
@@ -32,7 +33,7 @@ export default function Modal({ title, onClose, children, footer }: ModalProps) 
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        className="modal-panel flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/5"
+        className={`modal-panel flex max-h-[90vh] w-full ${maxWidth} flex-col rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/5`}
       >
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
           <h2 id="modal-title" className="text-lg font-semibold text-slate-900">

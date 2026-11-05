@@ -206,6 +206,7 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
     <Modal
       title={client ? 'Редактирование клиента' : 'Новый клиент'}
       onClose={onClose}
+      maxWidth="max-w-5xl"
       footer={
         <>
           <button
@@ -226,8 +227,8 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
         </>
       }
     >
-      <form id="client-form" onSubmit={handleSubmit} className="grid grid-cols-1 gap-x-5 gap-y-5 sm:grid-cols-2">
-        <FormField label="Наименование клиента" htmlFor="client-name" error={errors.name} className="sm:col-span-2">
+      <form id="client-form" onSubmit={handleSubmit} className="grid grid-cols-1 gap-x-5 gap-y-4 lg:grid-cols-3">
+        <FormField label="Наименование клиента" htmlFor="client-name" error={errors.name} className="lg:col-span-3">
           <input
             id="client-name"
             className={inputClassName}
@@ -263,7 +264,29 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
           />
         </FormField>
 
-        <FormField label="Юридический адрес" htmlFor="client-legal-address" error={errors.legal_address} className="sm:col-span-2">
+        <FormField label="Контактный телефон" htmlFor="client-phone">
+          <input
+            id="client-phone"
+            type="tel"
+            className={inputClassName}
+            value={values.phone}
+            onChange={(event) => updateField('phone', event.target.value)}
+            placeholder="+375 17 000-00-00"
+          />
+        </FormField>
+
+        <FormField label="Электронная почта" htmlFor="client-email">
+          <input
+            id="client-email"
+            type="email"
+            className={inputClassName}
+            value={values.email}
+            onChange={(event) => updateField('email', event.target.value)}
+            placeholder="info@example.by"
+          />
+        </FormField>
+
+        <FormField label="Юридический адрес" htmlFor="client-legal-address" error={errors.legal_address} className="lg:col-span-3">
           <textarea
             id="client-legal-address"
             rows={2}
@@ -274,7 +297,7 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
           />
         </FormField>
 
-        <FormField label="Почтовый адрес" htmlFor="client-postal-address" className="sm:col-span-2" hint="Необязательно, если совпадает с юридическим">
+        <FormField label="Почтовый адрес" htmlFor="client-postal-address" className="lg:col-span-3" hint="Необязательно, если совпадает с юридическим">
           <textarea
             id="client-postal-address"
             rows={2}
@@ -348,28 +371,6 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
           />
         </FormField>
 
-        <FormField label="Контактный телефон" htmlFor="client-phone">
-          <input
-            id="client-phone"
-            type="tel"
-            className={inputClassName}
-            value={values.phone}
-            onChange={(event) => updateField('phone', event.target.value)}
-            placeholder="+375 17 000-00-00"
-          />
-        </FormField>
-
-        <FormField label="Электронная почта" htmlFor="client-email">
-          <input
-            id="client-email"
-            type="email"
-            className={inputClassName}
-            value={values.email}
-            onChange={(event) => updateField('email', event.target.value)}
-            placeholder="info@example.by"
-          />
-        </FormField>
-
         <FormField label="Директор (ФИО)" htmlFor="client-director" error={errors.director_name} hint="Фамилия Имя Отчество">
           <input
             id="client-director"
@@ -413,7 +414,7 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
           label="Директор на основании"
           htmlFor="client-director-basis"
           hint="Выберите из списка или введите свой текст"
-          className="sm:col-span-2"
+          className="lg:col-span-3"
         >
           <div className="flex flex-wrap items-stretch gap-2">
             <select
@@ -450,7 +451,7 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
             <FormField
               label="Свидетельство о регистрации"
               htmlFor="client-reg-certificate"
-              className="sm:col-span-2"
+              className="lg:col-span-3"
             >
               <input
                 id="client-reg-certificate"
@@ -465,6 +466,7 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
               label="Кем зарегистрировано"
               htmlFor="client-registered-by"
               hint="Значения сохраняются и предлагаются при следующем вводе"
+              className="lg:col-span-2"
             >
               <input
                 id="client-registered-by"
@@ -494,7 +496,7 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
         )}
 
         {submitError && (
-          <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 sm:col-span-2">{submitError}</p>
+          <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 lg:col-span-3">{submitError}</p>
         )}
       </form>
     </Modal>
