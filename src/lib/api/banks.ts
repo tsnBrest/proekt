@@ -6,7 +6,7 @@ export const DUPLICATE_ERROR_CODE = '23505';
 export async function fetchBanks(): Promise<Bank[]> {
   const { data, error } = await supabase
     .from('banks')
-    .select('id, name, address')
+    .select('id, name, address, bik')
     .order('name');
   if (error) throw new Error(error.message);
   return (data ?? []) as Bank[];

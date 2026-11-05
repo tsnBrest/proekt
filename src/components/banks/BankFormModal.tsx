@@ -12,6 +12,7 @@ interface BankFormModalProps {
 
 export default function BankFormModal({ bank, onClose, onSaved }: BankFormModalProps) {
   const [name, setName] = useState(bank?.name ?? '');
+  const [bik, setBik] = useState(bank?.bik ?? '');
   const [address, setAddress] = useState(bank?.address ?? '');
   const [nameError, setNameError] = useState('');
   const [submitError, setSubmitError] = useState('');
@@ -28,7 +29,7 @@ export default function BankFormModal({ bank, onClose, onSaved }: BankFormModalP
     setSubmitError('');
     setSaving(true);
     try {
-      const input = { name: trimmedName, address: address.trim() };
+      const input = { name: trimmedName, bik: bik.trim(), address: address.trim() };
       if (bank) {
         await updateBank(bank.id, input);
       } else {
@@ -81,6 +82,15 @@ export default function BankFormModal({ bank, onClose, onSaved }: BankFormModalP
             onChange={(event) => setName(event.target.value)}
             placeholder="ОАО «Название банка»"
             autoFocus
+          />
+        </FormField>
+        <FormField label="БИК" htmlFor="bank-bik">
+          <input
+            id="bank-bik"
+            className={inputClassName}
+            value={bik}
+            onChange={(event) => setBik(event.target.value)}
+            placeholder="AKBBBY2X"
           />
         </FormField>
         <FormField label="Адрес банка" htmlFor="bank-address">

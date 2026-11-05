@@ -2,6 +2,7 @@ export interface Bank {
   id: string;
   name: string;
   address: string;
+  bik: string;
 }
 
 export interface Client {

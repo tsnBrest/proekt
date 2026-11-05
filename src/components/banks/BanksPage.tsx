@@ -70,6 +70,9 @@ export default function BanksPage() {
             <li key={bank.id} className="flex items-start justify-between gap-4 px-5 py-4 transition-colors hover:bg-slate-50">
               <div className="min-w-0">
                 <p className="font-medium text-slate-900">{bank.name}</p>
+                {bank.bik && (
+                  <p className="mt-1 text-sm text-slate-600">БИК: {bank.bik}</p>
+                )}
                 <p className={`mt-1 text-sm ${bank.address ? 'text-slate-600' : 'text-amber-700'}`}>
                   {bank.address || 'Адрес не указан'}
                 </p>
