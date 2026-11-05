@@ -124,9 +124,13 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
   };
 
   const handleNameChange = (value: string) => {
-    const isIp = /\bИП\b/i.test(value);
-    setValues((prev) => ({ ...prev, name: value, is_ip: isIp }));
-    setErrors((prev) => ({ ...prev, name: undefined, unp: undefined }));
+    setValues((prev) => ({ ...prev, name: value }));
+    setErrors((prev) => ({ ...prev, name: undefined }));
+  };
+
+  const handleIpToggle = (checked: boolean) => {
+    setValues((prev) => ({ ...prev, is_ip: checked }));
+    setErrors((prev) => ({ ...prev, unp: undefined }));
   };
 
   const handleDirectorChange = (value: string) => {
@@ -229,17 +233,25 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
     >
       <form id="client-form" onSubmit={handleSubmit} className="grid grid-cols-1 gap-x-5 gap-y-4 lg:grid-cols-3">
         <FormField label="Наименование клиента" htmlFor="client-name" error={errors.name} className="lg:col-span-3">
-          <input
-            id="client-name"
-            className={inputClassName}
-            value={values.name}
-            onChange={(event) => handleNameChange(event.target.value)}
-            placeholder="ООО «Ромашка» или ИП Иванов И.И."
-            autoFocus
-          />
-          {isIp && (
-            <p className="text-xs text-blue-600">Режим ИП: доступны поля свидетельства о регистрации.</p>
-          )}
+          <div className="flex items-stretch gap-2">
+            <input
+              id="client-name"
+              className={inputClassName}
+              value={values.name}
+              onChange={(event) => handleNameChange(event.target.value)}
+              placeholder="ООО «Ромашка» или ИП Иванов И.И."
+              autoFocus
+            />
+            <label className="inline-flex shrink-0 cursor-pointer select-none items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
+              <input
+                type="checkbox"
+                checked={isIp}
+                onChange={(event) => handleIpToggle(event.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
+              />
+              ИП
+            </label>
+          </div>
         </FormField>
 
         <FormField label="УНП" htmlFor="client-unp" error={errors.unp} hint={isIp ? 'Необязательно для ИП' : '9 цифр'}>
