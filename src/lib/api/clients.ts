@@ -10,6 +10,25 @@ export async function fetchClients(): Promise<Client[]> {
   return (data ?? []) as Client[];
 }
 
+export async function fetchRegisteredByValues(): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('clients')
+    .select('registered_by')
+    .neq('registered_by', '')
+    .order('registered_by');
+  if (error) throw new Error(error.message);
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const row of data ?? []) {
+    const value = (row as { registered_by: string }).registered_by;
+    if (value && !seen.has(value)) {
+      seen.add(value);
+      result.push(value);
+    }
+  }
+  return result;
+}
+
 export async function createClient(input: ClientInput): Promise<void> {
   const { error } = await supabase.from('clients').insert(input);
   if (error) throw error;

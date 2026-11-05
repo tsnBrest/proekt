@@ -11,7 +11,7 @@ export async function fetchWorkstationOperations(
   let query = supabase
     .from('workstation_operations')
     .select(
-      'id, workstation_id, operation_type, operation_date, client_id, address, is_cloud, token_number, notes, workstation:workstations(model, token_number), client:clients(name)',
+      'id, workstation_id, operation_type, operation_date, client_id, address, is_cloud, token_number, notes, workstation:workstations!left(model, token_number), client:clients(name)',
     )
     .order('operation_date', { ascending: false })
     .order('created_at', { ascending: false });

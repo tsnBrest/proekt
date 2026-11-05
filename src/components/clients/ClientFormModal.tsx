@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { RefreshCw, TriangleAlert } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import FormField, { inputClassName } from '@/components/ui/FormField';
-import { createClient, updateClient } from '@/lib/api/clients';
+import { createClient, updateClient, fetchRegisteredByValues } from '@/lib/api/clients';
 import { fetchBanks } from '@/lib/api/banks';
 import { toGenitiveFullName } from '@/lib/genitiveName';
 import type { Bank, Client, ClientInput } from '@/types/directory';
@@ -16,13 +16,9 @@ interface ClientFormModalProps {
   onSaved: () => void;
 }
 
-const REQUIRED_FIELDS: { key: keyof FormValues; message: string }[] = [
-  { key: 'name', message: 'Укажите наименование клиента' },
-  { key: 'legal_address', message: 'Укажите юридический адрес' },
-  { key: 'bank_account', message: 'Укажите расчетный счет' },
-  { key: 'bank_id', message: 'Выберите банк из списка' },
-  { key: 'director_name', message: 'Укажите ФИО директора' },
-  { key: 'director_name_genitive', message: 'Укажите ФИО в родительном падеже' },
+const DIRECTOR_BASIS_OPTIONS = [
+  'Устава',
+  'Доверенности',
 ];
 
 const emptyValues: FormValues = {
@@ -33,8 +29,16 @@ const emptyValues: FormValues = {
   bank_account: '',
   bank_id: '',
   bank_address: '',
+  bank_bik: '',
+  phone: '',
+  email: '',
   director_name: '',
   director_name_genitive: '',
+  director_basis: '',
+  is_ip: false,
+  registration_certificate: '',
+  registered_by: '',
+  registered_at: null,
 };
 
 function valuesFromClient(client: Client | null): FormValues {
@@ -47,18 +51,34 @@ function valuesFromClient(client: Client | null): FormValues {
     bank_account: client.bank_account,
     bank_id: client.bank_id,
     bank_address: client.bank_address,
+    bank_bik: client.bank_bik,
+    phone: client.phone,
+    email: client.email,
     director_name: client.director_name,
     director_name_genitive: client.director_name_genitive,
+    director_basis: client.director_basis,
+    is_ip: client.is_ip,
+    registration_certificate: client.registration_certificate,
+    registered_by: client.registered_by,
+    registered_at: client.registered_at,
   };
 }
 
 function validate(values: FormValues): FormErrors {
   const errors: FormErrors = {};
-  for (const { key, message } of REQUIRED_FIELDS) {
-    if (!values[key].trim()) errors[key] = message;
-  }
-  if (!errors.unp && !/^\d{9}$/.test(values.unp.trim())) {
-    errors.unp = 'УНП состоит из 9 цифр';
+  if (!values.name.trim()) errors.name = 'Укажите наименование клиента';
+  if (!values.legal_address.trim()) errors.legal_address = 'Укажите юридический адрес';
+  if (!values.bank_account.trim()) errors.bank_account = 'Укажите расчетный счет';
+  if (!values.bank_id) errors.bank_id = 'Выберите банк из списка';
+  if (!values.director_name.trim()) errors.director_name = 'Укажите ФИО директора';
+  if (!values.director_name_genitive.trim()) errors.director_name_genitive = 'Укажите ФИО в родительном падеже';
+
+  if (!values.is_ip) {
+    if (!values.unp.trim()) {
+      errors.unp = 'Укажите УНП';
+    } else if (!/^\d{9}$/.test(values.unp.trim())) {
+      errors.unp = 'УНП состоит из 9 цифр';
+    }
   }
   return errors;
 }
@@ -71,6 +91,7 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
   const [banks, setBanks] = useState<Bank[]>([]);
   const [banksLoading, setBanksLoading] = useState(true);
   const [banksError, setBanksError] = useState('');
+  const [registeredByOptions, setRegisteredByOptions] = useState<string[]>([]);
 
   const loadBanks = async () => {
     setBanksLoading(true);
@@ -84,13 +105,28 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
     }
   };
 
+  const loadRegisteredBy = async () => {
+    try {
+      setRegisteredByOptions(await fetchRegisteredByValues());
+    } catch {
+      // ignore — datalist is optional
+    }
+  };
+
   useEffect(() => {
     loadBanks();
+    loadRegisteredBy();
   }, []);
 
   const updateField = <K extends keyof FormValues>(key: K, value: FormValues[K]) => {
     setValues((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: undefined }));
+  };
+
+  const handleNameChange = (value: string) => {
+    const isIp = /\bИП\b/i.test(value);
+    setValues((prev) => ({ ...prev, name: value, is_ip: isIp }));
+    setErrors((prev) => ({ ...prev, name: undefined, unp: undefined }));
   };
 
   const handleDirectorChange = (value: string) => {
@@ -111,8 +147,13 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
       ...prev,
       bank_id: bankId,
       bank_address: bank ? bank.address : '',
+      bank_bik: bank ? bank.bik : '',
     }));
     setErrors((prev) => ({ ...prev, bank_id: undefined }));
+  };
+
+  const handleDirectorBasisChange = (value: string) => {
+    updateField('director_basis', value);
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -122,15 +163,22 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
     if (Object.keys(nextErrors).length > 0) return;
 
     const payload: FormValues = {
+      ...values,
       name: values.name.trim(),
       unp: values.unp.trim(),
       legal_address: values.legal_address.trim(),
       postal_address: values.postal_address.trim(),
       bank_account: values.bank_account.trim(),
-      bank_id: values.bank_id,
       bank_address: values.bank_address.trim(),
+      bank_bik: values.bank_bik.trim(),
+      phone: values.phone.trim(),
+      email: values.email.trim(),
       director_name: values.director_name.trim(),
       director_name_genitive: values.director_name_genitive.trim(),
+      director_basis: values.director_basis.trim(),
+      registration_certificate: values.registration_certificate.trim(),
+      registered_by: values.registered_by.trim(),
+      registered_at: values.registered_at || null,
     };
 
     setSaving(true);
@@ -152,6 +200,7 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
 
   const genitiveIsAuto = values.director_name_genitive === toGenitiveFullName(values.director_name);
   const noBanks = !banksLoading && !banksError && banks.length === 0;
+  const isIp = values.is_ip;
 
   return (
     <Modal
@@ -183,13 +232,16 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
             id="client-name"
             className={inputClassName}
             value={values.name}
-            onChange={(event) => updateField('name', event.target.value)}
-            placeholder="ООО «Ромашка»"
+            onChange={(event) => handleNameChange(event.target.value)}
+            placeholder="ООО «Ромашка» или ИП Иванов И.И."
             autoFocus
           />
+          {isIp && (
+            <p className="text-xs text-blue-600">Режим ИП: доступны поля свидетельства о регистрации.</p>
+          )}
         </FormField>
 
-        <FormField label="УНП" htmlFor="client-unp" error={errors.unp} hint="9 цифр">
+        <FormField label="УНП" htmlFor="client-unp" error={errors.unp} hint={isIp ? 'Необязательно для ИП' : '9 цифр'}>
           <input
             id="client-unp"
             inputMode="numeric"
@@ -276,6 +328,16 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
           )}
         </FormField>
 
+        <FormField label="БИК банка" htmlFor="client-bank-bik" hint="Подставляется из выбранного банка">
+          <input
+            id="client-bank-bik"
+            className={inputClassName}
+            value={values.bank_bik}
+            onChange={(event) => updateField('bank_bik', event.target.value)}
+            placeholder="AKBBBY2X"
+          />
+        </FormField>
+
         <FormField label="Адрес банка" htmlFor="client-bank-address" hint="Подставляется из выбранного банка">
           <input
             id="client-bank-address"
@@ -283,6 +345,28 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
             value={values.bank_address}
             onChange={(event) => updateField('bank_address', event.target.value)}
             placeholder="г. Минск, ул. Примерная, 1"
+          />
+        </FormField>
+
+        <FormField label="Контактный телефон" htmlFor="client-phone">
+          <input
+            id="client-phone"
+            type="tel"
+            className={inputClassName}
+            value={values.phone}
+            onChange={(event) => updateField('phone', event.target.value)}
+            placeholder="+375 17 000-00-00"
+          />
+        </FormField>
+
+        <FormField label="Электронная почта" htmlFor="client-email">
+          <input
+            id="client-email"
+            type="email"
+            className={inputClassName}
+            value={values.email}
+            onChange={(event) => updateField('email', event.target.value)}
+            placeholder="info@example.by"
           />
         </FormField>
 
@@ -324,6 +408,90 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
             placeholder="Иванова Ивана Ивановича"
           />
         </FormField>
+
+        <FormField
+          label="Директор на основании"
+          htmlFor="client-director-basis"
+          hint="Выберите из списка или введите свой текст"
+          className="sm:col-span-2"
+        >
+          <div className="flex flex-wrap items-stretch gap-2">
+            <select
+              id="client-director-basis"
+              className={`${inputClassName} max-w-[12rem]`}
+              value={DIRECTOR_BASIS_OPTIONS.includes(values.director_basis) ? values.director_basis : '__custom'}
+              onChange={(event) => {
+                if (event.target.value === '__custom') return;
+                handleDirectorBasisChange(event.target.value);
+              }}
+            >
+              <option value="">—</option>
+              {DIRECTOR_BASIS_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+              {!DIRECTOR_BASIS_OPTIONS.includes(values.director_basis) && values.director_basis && (
+                <option value="__custom">{values.director_basis}</option>
+              )}
+              <option value="__custom">Произвольный текст…</option>
+            </select>
+            {!DIRECTOR_BASIS_OPTIONS.includes(values.director_basis) && (
+              <input
+                className={inputClassName}
+                value={values.director_basis}
+                onChange={(event) => handleDirectorBasisChange(event.target.value)}
+                placeholder="Например: доверенности № 123 от 01.01.2025"
+              />
+            )}
+          </div>
+        </FormField>
+
+        {isIp && (
+          <>
+            <FormField
+              label="Свидетельство о регистрации"
+              htmlFor="client-reg-certificate"
+              className="sm:col-span-2"
+            >
+              <input
+                id="client-reg-certificate"
+                className={inputClassName}
+                value={values.registration_certificate}
+                onChange={(event) => updateField('registration_certificate', event.target.value)}
+                placeholder="№ свидетельства"
+              />
+            </FormField>
+
+            <FormField
+              label="Кем зарегистрировано"
+              htmlFor="client-registered-by"
+              hint="Значения сохраняются и предлагаются при следующем вводе"
+            >
+              <input
+                id="client-registered-by"
+                className={inputClassName}
+                list="registered-by-list"
+                value={values.registered_by}
+                onChange={(event) => updateField('registered_by', event.target.value)}
+                placeholder="Например: Администрация Ленинского района г. Минска"
+              />
+              <datalist id="registered-by-list">
+                {registeredByOptions.map((opt) => (
+                  <option key={opt} value={opt} />
+                ))}
+              </datalist>
+            </FormField>
+
+            <FormField label="Когда выдано" htmlFor="client-registered-at" hint="Дата или произвольный текст">
+              <input
+                id="client-registered-at"
+                type="date"
+                className={inputClassName}
+                value={values.registered_at ?? ''}
+                onChange={(event) => updateField('registered_at', event.target.value || null)}
+              />
+            </FormField>
+          </>
+        )}
 
         {submitError && (
           <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 sm:col-span-2">{submitError}</p>

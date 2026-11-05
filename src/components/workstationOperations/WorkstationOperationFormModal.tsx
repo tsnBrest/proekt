@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Plus } from 'lucide-react';
 import ClientPicker from '@/components/ui/ClientPicker';
 import Modal from '@/components/ui/Modal';
@@ -7,10 +7,8 @@ import TokenPicker from '@/components/workstations/TokenPicker';
 import ClientFormModal from '@/components/clients/ClientFormModal';
 import { createWorkstationOperation, updateWorkstationOperation } from '@/lib/api/workstationOperations';
 import { fetchClients } from '@/lib/api/clients';
-import { fetchWorkstations } from '@/lib/api/workstations';
 import type {
   Client,
-  Workstation,
   WorkstationOperation,
   WorkstationOperationInput,
   WorkstationOperationType,
@@ -39,7 +37,7 @@ export default function WorkstationOperationFormModal({
   onSaved,
 }: WorkstationOperationFormModalProps) {
   const [values, setValues] = useState<WorkstationOperationInput>(() => ({
-    workstation_id: operation?.workstation_id ?? '',
+    workstation_id: operation?.workstation_id ?? null,
     operation_type: operationType,
     operation_date: operation?.operation_date ?? new Date().toISOString().slice(0, 10),
     client_id: operation?.client_id ?? null,
@@ -48,8 +46,6 @@ export default function WorkstationOperationFormModal({
     token_number: operation?.token_number ?? '',
     notes: operation?.notes ?? '',
   }));
-  const [workstations, setWorkstations] = useState<Workstation[]>([]);
-  const [workstationsLoading, setWorkstationsLoading] = useState(true);
   const [clients, setClients] = useState<Client[]>([]);
   const [clientsLoading, setClientsLoading] = useState(true);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -70,10 +66,6 @@ export default function WorkstationOperationFormModal({
   }, []);
 
   useEffect(() => {
-    fetchWorkstations()
-      .then(setWorkstations)
-      .catch(() => undefined)
-      .finally(() => setWorkstationsLoading(false));
     loadClients();
   }, [loadClients]);
 
@@ -89,7 +81,7 @@ export default function WorkstationOperationFormModal({
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     const payload: WorkstationOperationInput = {
-      workstation_id: values.workstation_id,
+      workstation_id: null,
       operation_type: operationType,
       operation_date: values.operation_date,
       client_id: values.client_id || null,
@@ -100,7 +92,6 @@ export default function WorkstationOperationFormModal({
     };
 
     const nextErrors: FormErrors = {};
-    if (!payload.workstation_id) nextErrors.workstation_id = 'Выберите ПК';
     if (!payload.operation_date) nextErrors.operation_date = 'Укажите дату';
     if (isRegistration && !payload.client_id) nextErrors.client_id = 'Выберите клиента';
     if (needsAddress && !payload.address) nextErrors.address = 'Укажите адрес';
@@ -127,7 +118,6 @@ export default function WorkstationOperationFormModal({
     }
   };
 
-  const hasWorkstations = workstations.length > 0;
   const hasClients = clients.length > 0;
 
   return (
@@ -146,7 +136,7 @@ export default function WorkstationOperationFormModal({
           <button
             type="submit"
             form="ws-operation-form"
-            disabled={saving || workstationsLoading}
+            disabled={saving}
             className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? 'Сохранение...' : 'Сохранить'}
@@ -159,30 +149,6 @@ export default function WorkstationOperationFormModal({
         onSubmit={handleSubmit}
         className="grid grid-cols-1 gap-x-5 gap-y-5 pb-16 sm:grid-cols-2"
       >
-        <FormField
-          label="ПК"
-          htmlFor="ws-op-workstation"
-          error={errors.workstation_id}
-          hint={workstationsLoading ? 'Загрузка...' : hasWorkstations ? undefined : 'Сначала добавьте ПК'}
-          className="sm:col-span-2"
-        >
-          <select
-            id="ws-op-workstation"
-            className={inputClassName}
-            value={values.workstation_id}
-            disabled={workstationsLoading || !hasWorkstations}
-            onChange={(event) => updateField('workstation_id', event.target.value)}
-          >
-            <option value="">Выберите ПК</option>
-            {workstations.map((ws) => (
-              <option key={ws.id} value={ws.id}>
-                {ws.model}
-                {ws.token_number ? ` — ${ws.token_number}` : ''}
-              </option>
-            ))}
-          </select>
-        </FormField>
-
         <FormField label="Дата" htmlFor="ws-op-date" error={errors.operation_date}>
           <input
             id="ws-op-date"

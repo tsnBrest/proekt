@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FileStack, Pencil, Plus, Search, Trash2, TriangleAlert } from 'lucide-react';
+import { Pencil, Plus, Search, Trash2, TriangleAlert } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import WorkstationOperationFormModal from '@/components/workstationOperations/WorkstationOperationFormModal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { deleteWorkstationOperation, fetchWorkstationOperations } from '@/lib/api/workstationOperations';
@@ -10,7 +11,7 @@ type EditorState = { mode: 'create' } | { mode: 'edit'; operation: WorkstationOp
 interface WorkstationOperationsPageProps {
   operationType: WorkstationOperationType;
   title: string;
-  emptyIcon: typeof Plus;
+  emptyIcon: LucideIcon;
 }
 
 const ADD_LABEL: Record<WorkstationOperationType, string> = {
@@ -55,8 +56,6 @@ export default function WorkstationOperationsPage({
     if (!query) return items;
     return items.filter(
       (item) =>
-        (item.workstation?.model ?? '').toLowerCase().includes(query) ||
-        (item.workstation?.token_number ?? '').toLowerCase().includes(query) ||
         (item.client?.name ?? '').toLowerCase().includes(query) ||
         item.address.toLowerCase().includes(query) ||
         item.token_number.toLowerCase().includes(query) ||
@@ -124,7 +123,6 @@ export default function WorkstationOperationsPage({
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
             <tr>
               <th className="px-5 py-3">Дата</th>
-              <th className="px-5 py-3">ПК</th>
               <th className="px-5 py-3">Клиент</th>
               <th className="px-5 py-3">Тип</th>
               <th className="px-5 py-3">Токен</th>
@@ -139,9 +137,6 @@ export default function WorkstationOperationsPage({
               <tr key={item.id} className="transition-colors hover:bg-slate-50">
                 <td className="whitespace-nowrap px-5 py-4 tabular-nums text-slate-900">
                   {new Date(item.operation_date).toLocaleDateString('ru-RU')}
-                </td>
-                <td className="px-5 py-4 font-medium text-slate-900">
-                  {item.workstation?.model ?? '—'}
                 </td>
                 <td className="px-5 py-4 text-slate-700">{item.client?.name ?? '—'}</td>
                 <td className="px-5 py-4 text-slate-700">
@@ -202,7 +197,7 @@ export default function WorkstationOperationsPage({
           type="search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Поиск по ПК, клиенту, токену или адресу"
+          placeholder="Поиск по клиенту, токену или адресу"
           aria-label="Поиск"
           className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
         />

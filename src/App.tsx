@@ -1,16 +1,11 @@
 import { useState } from 'react';
 import {
   Building2,
-  Car,
   ClipboardList,
-  Cpu,
   FileStack,
   FileText,
-  Landmark,
   Monitor,
-  Plus,
   Receipt,
-  Users,
   Wrench,
 } from 'lucide-react';
 import ClientsPage from '@/components/clients/ClientsPage';
@@ -18,21 +13,23 @@ import BanksPage from '@/components/banks/BanksPage';
 import CashRegistersPage from '@/components/cashRegisters/CashRegistersPage';
 import EquipmentModelsPage from '@/components/equipmentModels/EquipmentModelsPage';
 import OperationsPage from '@/components/operations/OperationsPage';
+import ServicedEquipmentPage from '@/components/servicedEquipment/ServicedEquipmentPage';
 import TaximetersPage from '@/components/taximeters/TaximetersPage';
 import TokensPage from '@/components/tokens/TokensPage';
-import WorkstationsPage from '@/components/workstations/WorkstationsPage';
 import WorkstationOperationsPage from '@/components/workstationOperations/WorkstationOperationsPage';
+import type { LucideIcon } from 'lucide-react';
 import type { CashRegisterOperationType, WorkstationOperationType } from '@/types/directory';
+
 
 type TopTab = 'equipment' | 'reports' | 'directories';
 type EquipmentSubtab = 'workstations' | 'taximeters' | 'cashRegisters';
-type WorkstationSubtab = 'list' | WorkstationOperationType;
+type WorkstationSubtab = WorkstationOperationType;
 type CashRegisterSubtab = 'list' | CashRegisterOperationType;
 type DirectorySubtab =
   | 'clients'
   | 'banks'
   | 'cashRegisters'
-  | 'workstations'
+  | 'servicedEquipment'
   | 'models'
   | 'tokensIkassa'
   | 'tokensCpi';
@@ -42,7 +39,7 @@ interface Subtab {
   label: string;
 }
 
-const TOP_TABS: { id: TopTab; label: string; icon: typeof Users }[] = [
+const TOP_TABS: { id: TopTab; label: string; icon: LucideIcon }[] = [
   { id: 'equipment', label: 'Оборудование', icon: Monitor },
   { id: 'reports', label: 'Отчеты', icon: FileText },
   { id: 'directories', label: 'Справочники', icon: ClipboardList },
@@ -58,7 +55,7 @@ const DIRECTORY_SUBTABS: Subtab[] = [
   { id: 'clients', label: 'Справочник клиентов' },
   { id: 'banks', label: 'Банки' },
   { id: 'cashRegisters', label: 'Справочник касс' },
-  { id: 'workstations', label: 'Справочник ПК' },
+  { id: 'servicedEquipment', label: 'Обслуживаемое оборудование' },
   { id: 'models', label: 'Модели' },
   { id: 'tokensIkassa', label: 'Токены iKassa' },
   { id: 'tokensCpi', label: 'Токены ЦПИ' },
@@ -73,7 +70,6 @@ const CASH_REGISTER_SUBTABS: Subtab[] = [
 ];
 
 const WORKSTATION_SUBTABS: Subtab[] = [
-  { id: 'list', label: 'Список ПК' },
   { id: 'registration', label: 'Регистрация ПК' },
   { id: 'deregistration', label: 'Снятие ПК' },
   { id: 'address_change', label: 'Изменение адреса ПК' },
@@ -82,7 +78,7 @@ const WORKSTATION_SUBTABS: Subtab[] = [
 
 const WS_OPERATION_CONFIG: Record<
   WorkstationOperationType,
-  { title: string; icon: typeof Plus }
+  { title: string; icon: LucideIcon }
 > = {
   registration: { title: 'Регистрация ПК', icon: Monitor },
   deregistration: { title: 'Снятие ПК', icon: Monitor },
@@ -92,7 +88,7 @@ const WS_OPERATION_CONFIG: Record<
 
 const OPERATION_CONFIG: Record<
   CashRegisterOperationType,
-  { title: string; subtitle: string; icon: typeof Plus }
+  { title: string; subtitle: string; icon: LucideIcon }
 > = {
   registration: { title: 'Регистрация кассы', subtitle: 'Журнал регистраций касс', icon: Receipt },
   deregistration: { title: 'Снятие кассы', subtitle: 'Журнал снятий касс с учета', icon: Receipt },
@@ -103,7 +99,7 @@ const OPERATION_CONFIG: Record<
 function App() {
   const [topTab, setTopTab] = useState<TopTab>('equipment');
   const [equipmentSubtab, setEquipmentSubtab] = useState<EquipmentSubtab>('workstations');
-  const [workstationSubtab, setWorkstationSubtab] = useState<WorkstationSubtab>('list');
+  const [workstationSubtab, setWorkstationSubtab] = useState<WorkstationSubtab>('registration');
   const [cashRegisterSubtab, setCashRegisterSubtab] = useState<CashRegisterSubtab>('list');
   const [directorySubtab, setDirectorySubtab] = useState<DirectorySubtab>('clients');
 
@@ -123,9 +119,6 @@ function App() {
   };
 
   const renderWorkstationContent = () => {
-    if (workstationSubtab === 'list') {
-      return <WorkstationsPage />;
-    }
     const config = WS_OPERATION_CONFIG[workstationSubtab];
     return (
       <WorkstationOperationsPage
@@ -155,8 +148,8 @@ function App() {
         return <BanksPage />;
       case 'cashRegisters':
         return <CashRegistersPage />;
-      case 'workstations':
-        return <WorkstationsPage />;
+      case 'servicedEquipment':
+        return <ServicedEquipmentPage />;
       case 'models':
         return <EquipmentModelsPage />;
       case 'tokensIkassa':

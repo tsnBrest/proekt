@@ -14,8 +14,16 @@ export interface Client {
   bank_account: string;
   bank_id: string;
   bank_address: string;
+  bank_bik: string;
+  phone: string;
+  email: string;
   director_name: string;
   director_name_genitive: string;
+  director_basis: string;
+  is_ip: boolean;
+  registration_certificate: string;
+  registered_by: string;
+  registered_at: string | null;
   bank: { name: string } | null;
 }
 
@@ -78,6 +86,17 @@ export interface EquipmentModel {
 
 export type EquipmentModelInput = Omit<EquipmentModel, 'id'>;
 
+export interface ServicedEquipment {
+  id: string;
+  model: string;
+  serial_number: string;
+  software_version: string;
+  client_id: string | null;
+  client: { name: string } | null;
+}
+
+export type ServicedEquipmentInput = Omit<ServicedEquipment, 'id' | 'client'>;
+
 export type CashRegisterOperationType = 'registration' | 'deregistration' | 'address_change' | 'repair';
 
 export interface CashRegisterOperation {
@@ -96,7 +115,7 @@ export type WorkstationOperationType = 'registration' | 'deregistration' | 'addr
 
 export interface WorkstationOperation {
   id: string;
-  workstation_id: string;
+  workstation_id: string | null;
   operation_type: WorkstationOperationType;
   operation_date: string;
   client_id: string | null;

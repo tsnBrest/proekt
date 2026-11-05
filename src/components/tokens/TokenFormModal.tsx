@@ -33,7 +33,7 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
     setSubmitError('');
     setSaving(true);
     try {
-      const input: TokenInput = { number: trimmed, operator_type: operatorType };
+      const input: TokenInput = { number: trimmed, operator_type: operatorType, client_id: token?.client_id ?? null };
       if (token) {
         await updateToken(token.id, input);
       } else {
