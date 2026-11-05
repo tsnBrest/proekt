@@ -45,7 +45,20 @@ export default function TokensPage({ operatorType }: TokensPageProps) {
   const visibleItems = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return items;
-    return items.filter((item) => item.number.toLowerCase().includes(query));
+    return items.filter(
+      (item) =>
+        item.number.toLowerCase().includes(query) ||
+        item.pc_model.toLowerCase().includes(query) ||
+        item.pc_software_version.toLowerCase().includes(query) ||
+        item.equipment_model.toLowerCase().includes(query) ||
+        item.equipment_serial_number.toLowerCase().includes(query) ||
+        item.installation_name.toLowerCase().includes(query) ||
+        item.pc_installation_address.toLowerCase().includes(query) ||
+        item.working_hours.toLowerCase().includes(query) ||
+        item.gln.toLowerCase().includes(query) ||
+        item.to_type.toLowerCase().includes(query) ||
+        item.to_name.toLowerCase().includes(query),
+    );
   }, [items, search]);
 
   const handleConfirmDelete = async () => {
@@ -108,6 +121,13 @@ export default function TokensPage({ operatorType }: TokensPageProps) {
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
             <tr>
               <th className="px-5 py-3">Номер токена</th>
+              <th className="px-5 py-3">Модель ПК</th>
+              <th className="px-5 py-3">Версия ПО</th>
+              <th className="px-5 py-3">Модель оборудования</th>
+              <th className="px-5 py-3">Сер. номер</th>
+              <th className="px-5 py-3">Место установки</th>
+              <th className="px-5 py-3">Режим работы</th>
+              <th className="px-5 py-3">GLN</th>
               <th className="px-5 py-3 text-right">
                 <span className="sr-only">Действия</span>
               </th>
@@ -117,6 +137,13 @@ export default function TokensPage({ operatorType }: TokensPageProps) {
             {visibleItems.map((item) => (
               <tr key={item.id} className="transition-colors hover:bg-slate-50">
                 <td className="px-5 py-4 tabular-nums font-medium text-slate-900">{item.number}</td>
+                <td className="px-5 py-4 text-slate-700">{item.pc_model || '—'}</td>
+                <td className="px-5 py-4 tabular-nums text-slate-700">{item.pc_software_version || '—'}</td>
+                <td className="px-5 py-4 text-slate-700">{item.equipment_model || '—'}</td>
+                <td className="px-5 py-4 tabular-nums text-slate-700">{item.equipment_serial_number || '—'}</td>
+                <td className="px-5 py-4 text-slate-700">{item.pc_installation_address || '—'}</td>
+                <td className="px-5 py-4 text-slate-700">{item.working_hours || '—'}</td>
+                <td className="px-5 py-4 tabular-nums text-slate-700">{item.gln || '—'}</td>
                 <td className="px-5 py-4">
                   <div className="flex items-center justify-end gap-1">
                     <button
@@ -170,9 +197,9 @@ export default function TokensPage({ operatorType }: TokensPageProps) {
           type="search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Поиск по номеру токена"
+          placeholder="Поиск по номеру, модели, адресу или GLN"
           aria-label="Поиск токенов"
-          className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-blue-500 focus:outline focus:ring-2 focus:ring-blue-500/20"
         />
       </div>
 

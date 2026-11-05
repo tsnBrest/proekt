@@ -74,6 +74,16 @@ export interface Token {
   number: string;
   operator_type: TokenOperatorType;
   client_id: string | null;
+  pc_model: string;
+  pc_software_version: string;
+  equipment_model: string;
+  equipment_serial_number: string;
+  installation_name: string;
+  pc_installation_address: string;
+  working_hours: string;
+  gln: string;
+  to_type: string;
+  to_name: string;
 }
 
 export type TokenInput = Omit<Token, 'id'>;
@@ -123,8 +133,19 @@ export interface WorkstationOperation {
   is_cloud: boolean;
   token_number: string;
   notes: string;
+  pc_model: string;
+  pc_software_version: string;
   workstation: { model: string; token_number: string } | null;
   client: { name: string } | null;
 }
 
 export type WorkstationOperationInput = Omit<WorkstationOperation, 'id' | 'workstation' | 'client'>;
+
+export interface Contract {
+  id: string;
+  number: string;
+  client_id: string | null;
+  client: { name: string } | null;
+}
+
+export type ContractInput = Omit<Contract, 'id' | 'client'>;

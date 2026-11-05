@@ -17,6 +17,7 @@ import ServicedEquipmentPage from '@/components/servicedEquipment/ServicedEquipm
 import TaximetersPage from '@/components/taximeters/TaximetersPage';
 import TokensPage from '@/components/tokens/TokensPage';
 import WorkstationOperationsPage from '@/components/workstationOperations/WorkstationOperationsPage';
+import ContractsPage from '@/components/contracts/ContractsPage';
 import type { LucideIcon } from 'lucide-react';
 import type { CashRegisterOperationType, WorkstationOperationType } from '@/types/directory';
 
@@ -31,6 +32,7 @@ type DirectorySubtab =
   | 'cashRegisters'
   | 'servicedEquipment'
   | 'models'
+  | 'contracts'
   | 'tokensIkassa'
   | 'tokensCpi';
 
@@ -57,6 +59,7 @@ const DIRECTORY_SUBTABS: Subtab[] = [
   { id: 'cashRegisters', label: 'Справочник касс' },
   { id: 'servicedEquipment', label: 'Обслуживаемое оборудование' },
   { id: 'models', label: 'Модели' },
+  { id: 'contracts', label: 'Справочник договоров' },
   { id: 'tokensIkassa', label: 'Токены iKassa' },
   { id: 'tokensCpi', label: 'Токены ЦПИ' },
 ];
@@ -152,6 +155,8 @@ function App() {
         return <ServicedEquipmentPage />;
       case 'models':
         return <EquipmentModelsPage />;
+      case 'contracts':
+        return <ContractsPage />;
       case 'tokensIkassa':
         return <TokensPage operatorType="ikassa" />;
       case 'tokensCpi':

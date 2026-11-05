@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Plus } from 'lucide-react';
+import { KeyRound, Plus } from 'lucide-react';
 import ClientPicker from '@/components/ui/ClientPicker';
 import Modal from '@/components/ui/Modal';
 import FormField, { inputClassName } from '@/components/ui/FormField';
-import TokenPicker from '@/components/workstations/TokenPicker';
+import ModelPicker from '@/components/cashRegisters/ModelPicker';
+import TokenFormModal from '@/components/tokens/TokenFormModal';
 import ClientFormModal from '@/components/clients/ClientFormModal';
+import TokenPicker from '@/components/workstations/TokenPicker';
 import { createWorkstationOperation, updateWorkstationOperation } from '@/lib/api/workstationOperations';
 import { fetchClients } from '@/lib/api/clients';
+import { fetchEquipmentModels } from '@/lib/api/equipmentModels';
 import type {
   Client,
+  EquipmentModel,
   WorkstationOperation,
   WorkstationOperationInput,
   WorkstationOperationType,
@@ -45,14 +49,19 @@ export default function WorkstationOperationFormModal({
     is_cloud: operation?.is_cloud ?? false,
     token_number: operation?.token_number ?? '',
     notes: operation?.notes ?? '',
+    pc_model: operation?.pc_model ?? '',
+    pc_software_version: operation?.pc_software_version ?? '',
   }));
   const [clients, setClients] = useState<Client[]>([]);
   const [clientsLoading, setClientsLoading] = useState(true);
+  const [models, setModels] = useState<EquipmentModel[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(true);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState('');
   const [saving, setSaving] = useState(false);
   const [tokenPickerOpen, setTokenPickerOpen] = useState(false);
   const [clientFormOpen, setClientFormOpen] = useState(false);
+  const [tokenFormOpen, setTokenFormOpen] = useState<null | 'ikassa' | 'cpi'>(null);
 
   const loadClients = useCallback(async () => {
     setClientsLoading(true);
@@ -66,6 +75,10 @@ export default function WorkstationOperationFormModal({
   }, []);
 
   useEffect(() => {
+    fetchEquipmentModels()
+      .then(setModels)
+      .catch(() => undefined)
+      .finally(() => setModelsLoading(false));
     loadClients();
   }, [loadClients]);
 
@@ -89,6 +102,8 @@ export default function WorkstationOperationFormModal({
       is_cloud: isRegistration ? values.is_cloud : false,
       token_number: isRegistration && !values.is_cloud ? values.token_number.trim() : '',
       notes: values.notes.trim(),
+      pc_model: values.pc_model.trim(),
+      pc_software_version: values.pc_software_version.trim(),
     };
 
     const nextErrors: FormErrors = {};
@@ -122,6 +137,7 @@ export default function WorkstationOperationFormModal({
 
   return (
     <Modal
+      maxWidth="max-w-4xl"
       title={operation ? `Редактирование: ${TYPE_TITLES[operationType]}` : TYPE_TITLES[operationType]}
       onClose={onClose}
       footer={
@@ -182,6 +198,35 @@ export default function WorkstationOperationFormModal({
         )}
 
         {isRegistration && (
+          <FormField
+            label="Модель ПК"
+            htmlFor="ws-op-pc-model"
+            hint={modelsLoading ? 'Загрузка моделей...' : 'Выбор из справочника моделей'}
+          >
+            <ModelPicker
+              id="ws-op-pc-model"
+              models={models}
+              value={values.pc_model}
+              onModelChange={(model) => updateField('pc_model', model)}
+              onSoftwareVersionChange={(version) => updateField('pc_software_version', version)}
+              disabled={modelsLoading}
+            />
+          </FormField>
+        )}
+
+        {isRegistration && (
+          <FormField label="Версия ПО" htmlFor="ws-op-pc-version" hint="Подставляется из справочника моделей">
+            <input
+              id="ws-op-pc-version"
+              className={inputClassName}
+              value={values.pc_software_version}
+              onChange={(event) => updateField('pc_software_version', event.target.value)}
+              placeholder="Например, 5.6.2"
+            />
+          </FormField>
+        )}
+
+        {isRegistration && (
           <FormField label="Тип регистрации" htmlFor="ws-op-cloud" className="sm:col-span-2">
             <div className="flex items-center gap-6">
               <label className="flex items-center gap-2 text-sm text-slate-700">
@@ -211,23 +256,47 @@ export default function WorkstationOperationFormModal({
         )}
 
         {isRegistration && !values.is_cloud && (
-          <FormField
-            label="Токен"
-            htmlFor="ws-op-token"
-            error={errors.token_number}
-            hint="Токены выбранного клиента"
-            className="sm:col-span-2"
-          >
-            <button
-              id="ws-op-token"
-              type="button"
-              onClick={() => values.client_id && setTokenPickerOpen(true)}
-              disabled={!values.client_id}
-              className={`${inputClassName} text-left ${values.token_number ? 'text-slate-900' : 'text-slate-400'} disabled:cursor-not-allowed disabled:opacity-50`}
+          <>
+            <FormField
+              label="Токен"
+              htmlFor="ws-op-token"
+              error={errors.token_number}
+              hint="Токены выбранного клиента"
             >
-              {values.token_number || (values.client_id ? 'Выберите токен' : 'Сначала выберите клиента')}
-            </button>
-          </FormField>
+              <button
+                id="ws-op-token"
+                type="button"
+                onClick={() => values.client_id && setTokenPickerOpen(true)}
+                disabled={!values.client_id}
+                className={`${inputClassName} text-left ${values.token_number ? 'text-slate-900' : 'text-slate-400'} disabled:cursor-not-allowed disabled:opacity-50`}
+              >
+                {values.token_number || (values.client_id ? 'Выберите токен' : 'Сначала выберите клиента')}
+              </button>
+            </FormField>
+
+            <FormField label="Новый токен" htmlFor="ws-op-new-token" hint="Создать токен и привязать к клиенту">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTokenFormOpen('ikassa')}
+                  disabled={!values.client_id}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <KeyRound className="h-4 w-4" />
+                  iKassa
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTokenFormOpen('cpi')}
+                  disabled={!values.client_id}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <KeyRound className="h-4 w-4" />
+                  ЦПИ
+                </button>
+              </div>
+            </FormField>
+          </>
         )}
 
         {needsAddress && (
@@ -272,6 +341,15 @@ export default function WorkstationOperationFormModal({
           clientId={values.client_id}
           onClose={() => setTokenPickerOpen(false)}
           onSelect={(tokenNumber) => updateField('token_number', tokenNumber)}
+        />
+      )}
+
+      {tokenFormOpen && values.client_id && (
+        <TokenFormModal
+          operatorType={tokenFormOpen}
+          token={null}
+          onClose={() => setTokenFormOpen(null)}
+          onSaved={() => setTokenFormOpen(null)}
         />
       )}
 
