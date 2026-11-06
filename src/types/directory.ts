@@ -69,6 +69,8 @@ export type TaximeterInput = Omit<Taximeter, 'id' | 'client'>;
 
 export type TokenOperatorType = 'ikassa' | 'cpi';
 
+export type TokenStatus = 'присвоен' | 'зарегистрирован' | 'пауза' | 'блокировка' | 'снят с регистрации';
+
 export interface Token {
   id: string;
   number: string;
@@ -85,9 +87,11 @@ export interface Token {
   to_type: string;
   to_name: string;
   contract_number: string;
+  status: TokenStatus;
+  client: { name: string } | null;
 }
 
-export type TokenInput = Omit<Token, 'id'>;
+export type TokenInput = Omit<Token, 'id' | 'client'>;
 
 export type TokenBatchOperatorLabel = 'АЙЭМЛЭБ' | 'ЦПИ';
 

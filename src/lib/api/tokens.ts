@@ -3,8 +3,16 @@ import type { Token, TokenInput, TokenOperatorType } from '@/types/directory';
 
 export const DUPLICATE_ERROR_CODE = '23505';
 
+export const TOKEN_STATUSES = [
+  'присвоен',
+  'зарегистрирован',
+  'пауза',
+  'блокировка',
+  'снят с регистрации',
+] as const;
+
 const TOKEN_FIELDS =
-  'id, number, operator_type, client_id, pc_model, pc_software_version, equipment_model, equipment_serial_number, installation_name, pc_installation_address, working_hours, gln, to_type, to_name, contract_number';
+  'id, number, operator_type, client_id, pc_model, pc_software_version, equipment_model, equipment_serial_number, installation_name, pc_installation_address, working_hours, gln, to_type, to_name, contract_number, status, client:clients(name)';
 
 export async function fetchTokens(operatorType?: TokenOperatorType): Promise<Token[]> {
   let query = supabase
@@ -16,7 +24,7 @@ export async function fetchTokens(operatorType?: TokenOperatorType): Promise<Tok
   }
   const { data, error } = await query;
   if (error) throw new Error(error.message);
-  return (data ?? []) as Token[];
+  return (data ?? []) as unknown as Token[];
 }
 
 export async function fetchUnassignedTokens(
@@ -38,7 +46,7 @@ export async function fetchTokensByClient(
     .eq('client_id', clientId)
     .order('number');
   if (error) throw new Error(error.message);
-  const all = (data ?? []) as Token[];
+  const all = (data ?? []) as unknown as Token[];
   const assigned = new Set(assignedTokenNumbers.map((n) => n.trim()).filter(Boolean));
   return all.filter((t) => !assigned.has(t.number));
 }

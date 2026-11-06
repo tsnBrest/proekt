@@ -5,7 +5,7 @@ import FormField, { inputClassName } from '@/components/ui/FormField';
 import ModelPicker from '@/components/cashRegisters/ModelPicker';
 import ContractFormModal from '@/components/contracts/ContractFormModal';
 import { fetchTokenBatchesByOperator, deleteTokenBatchByNumber } from '@/lib/api/tokenBatches';
-import { createToken, updateToken, DUPLICATE_ERROR_CODE } from '@/lib/api/tokens';
+import { createToken, updateToken, DUPLICATE_ERROR_CODE, TOKEN_STATUSES } from '@/lib/api/tokens';
 import { fetchEquipmentModels } from '@/lib/api/equipmentModels';
 import { fetchTradeObjectTypes } from '@/lib/api/tradeObjectTypes';
 import { fetchContracts } from '@/lib/api/contracts';
@@ -18,6 +18,7 @@ import type {
   TokenBatch,
   TokenInput,
   TokenOperatorType,
+  TokenStatus,
   TradeObjectType,
 } from '@/types/directory';
 
@@ -48,6 +49,7 @@ type ExtendedValues = {
   to_type: string;
   to_name: string;
   contract_number: string;
+  status: TokenStatus;
 };
 
 export default function TokenFormModal({ operatorType, token, onClose, onSaved }: TokenFormModalProps) {
@@ -66,6 +68,7 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
     to_type: token?.to_type ?? '',
     to_name: token?.to_name ?? '',
     contract_number: token?.contract_number ?? '',
+    status: token?.status ?? 'присвоен',
   }));
   const [allModels, setAllModels] = useState<EquipmentModel[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
@@ -135,6 +138,7 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
         to_type: values.to_type,
         to_name: isCpi ? '' : values.to_name,
         contract_number: values.contract_number,
+        status: values.status,
       };
       if (token) {
         await updateToken(token.id, input);
@@ -167,7 +171,7 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
 
   return (
     <Modal
-      maxWidth="max-w-4xl"
+      maxWidth="max-w-5xl"
       title={token ? `Редактирование токена ${OPERATOR_LABEL[operatorType]}` : `Новый токен ${OPERATOR_LABEL[operatorType]}`}
       onClose={onClose}
       footer={
@@ -193,7 +197,7 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
       <form
         id="token-form"
         onSubmit={handleSubmit}
-        className="grid grid-cols-1 gap-x-5 gap-y-5 pb-16 sm:grid-cols-2"
+        className="grid grid-cols-1 gap-x-5 gap-y-5 pb-16 sm:grid-cols-3"
       >
         <FormField label="Оператор" htmlFor="token-operator">
           <input
@@ -246,6 +250,23 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
                 Клиент
               </button>
             </div>
+          </FormField>
+        )}
+
+        {isCpi && (
+          <FormField label="Статус токена" htmlFor="token-status">
+            <select
+              id="token-status"
+              className={inputClassName}
+              value={values.status}
+              onChange={(event) => updateField('status', event.target.value as TokenStatus)}
+            >
+              {TOKEN_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </option>
+              ))}
+            </select>
           </FormField>
         )}
 

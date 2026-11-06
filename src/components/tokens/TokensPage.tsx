@@ -16,6 +16,14 @@ const OPERATOR_LABEL: Record<TokenOperatorType, string> = {
   cpi: 'ЦПИ',
 };
 
+const STATUS_COLORS: Record<string, string> = {
+  'присвоен': 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
+  'зарегистрирован': 'bg-green-100 text-green-800 ring-1 ring-green-200',
+  'пауза': 'bg-amber-100 text-amber-800 ring-1 ring-amber-200',
+  'блокировка': 'bg-red-100 text-red-800 ring-1 ring-red-200',
+  'снят с регистрации': 'bg-slate-200 text-slate-600 ring-1 ring-slate-300',
+};
+
 export default function TokensPage({ operatorType }: TokensPageProps) {
   const [items, setItems] = useState<Token[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,6 +129,7 @@ export default function TokensPage({ operatorType }: TokensPageProps) {
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
             <tr>
               <th className="px-5 py-3">Номер токена</th>
+              <th className="px-5 py-3">Статус</th>
               <th className="px-5 py-3">Модель ПК</th>
               <th className="px-5 py-3">Версия ПО</th>
               <th className="px-5 py-3">Адрес установки ПК</th>
@@ -135,7 +144,21 @@ export default function TokensPage({ operatorType }: TokensPageProps) {
           <tbody className="divide-y divide-slate-100">
             {visibleItems.map((item) => (
               <tr key={item.id} className="transition-colors hover:bg-slate-50">
-                <td className="px-5 py-4 tabular-nums font-medium text-slate-900">{item.number}</td>
+                <td className="px-5 py-4">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="tabular-nums font-medium text-slate-900">{item.number}</span>
+                    {item.client?.name && (
+                      <span className="text-xs text-slate-500">{item.client.name}</span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-5 py-4">
+                  <span
+                    className={`inline-flex rounded-md px-2.5 py-1 text-xs font-semibold ${STATUS_COLORS[item.status] ?? STATUS_COLORS['присвоен']}`}
+                  >
+                    {item.status}
+                  </span>
+                </td>
                 <td className="px-5 py-4 text-slate-700">{item.pc_model || '—'}</td>
                 <td className="px-5 py-4 tabular-nums text-slate-700">{item.pc_software_version || '—'}</td>
                 <td className="px-5 py-4 text-slate-700">{item.pc_installation_address || '—'}</td>
