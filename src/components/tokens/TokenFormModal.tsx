@@ -137,9 +137,9 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
         pc_model: values.pc_model,
         pc_software_version: values.pc_software_version,
         equipment_model: '',
-        equipment_serial_number: isCpi ? '' : values.equipment_serial_number,
-        equipment_name: isCpi ? values.equipment_name : '',
-        equipment_status: isCpi ? values.equipment_status : '',
+        equipment_serial_number: values.equipment_serial_number,
+        equipment_name: values.equipment_name,
+        equipment_status: values.equipment_status,
         installation_name: '',
         pc_installation_address: values.pc_installation_address,
         working_hours: values.working_hours,
@@ -285,56 +285,50 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
           </select>
         </FormField>
 
-        {isCpi && (
-          <FormField label="Оборудование" htmlFor="token-equipment-name">
-            <div className="flex items-stretch gap-2">
-              <input
-                id="token-equipment-name"
-                className={inputClassName}
-                value={values.equipment_name}
-                onChange={(event) => updateField('equipment_name', event.target.value)}
-                placeholder="Наименование оборудования"
-              />
-              <button
-                type="button"
-                onClick={() => setPcEquipmentOpen(true)}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-slate-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800"
-              >
-                <Plus className="h-4 w-4" />
-                Добавить
-              </button>
-            </div>
-          </FormField>
-        )}
-
-        {isCpi && (
-          <FormField label="Заводской номер оборудования" htmlFor="token-equipment-serial-cpi">
+        <FormField label="Оборудование" htmlFor="token-equipment-name">
+          <div className="flex items-stretch gap-2">
             <input
-              id="token-equipment-serial-cpi"
+              id="token-equipment-name"
               className={inputClassName}
-              value={values.equipment_serial_number}
-              onChange={(event) => updateField('equipment_serial_number', event.target.value)}
-              placeholder="Заводской номер"
+              value={values.equipment_name}
+              onChange={(event) => updateField('equipment_name', event.target.value)}
+              placeholder="Наименование оборудования"
             />
-          </FormField>
-        )}
-
-        {isCpi && (
-          <FormField label="Статус оборудования" htmlFor="token-equipment-status">
-            <select
-              id="token-equipment-status"
-              className={inputClassName}
-              value={values.equipment_status}
-              onChange={(event) => updateField('equipment_status', event.target.value)}
+            <button
+              type="button"
+              onClick={() => setPcEquipmentOpen(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-slate-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800"
             >
-              <option value="">Выберите статус</option>
-              <option value="аренда банка">Аренда банка</option>
-              <option value="аренда ЦТО">Аренда ЦТО</option>
-              <option value="покупка в Анъюск">Покупка в Анъюск</option>
-              <option value="собственность клиента">Собственность клиента</option>
-            </select>
-          </FormField>
-        )}
+              <Plus className="h-4 w-4" />
+              Добавить
+            </button>
+          </div>
+        </FormField>
+
+        <FormField label="Заводской номер оборудования" htmlFor="token-equipment-serial-cpi">
+          <input
+            id="token-equipment-serial-cpi"
+            className={inputClassName}
+            value={values.equipment_serial_number}
+            onChange={(event) => updateField('equipment_serial_number', event.target.value)}
+            placeholder="Заводской номер"
+          />
+        </FormField>
+
+        <FormField label="Статус оборудования" htmlFor="token-equipment-status">
+          <select
+            id="token-equipment-status"
+            className={inputClassName}
+            value={values.equipment_status}
+            onChange={(event) => updateField('equipment_status', event.target.value)}
+          >
+            <option value="">Выберите статус</option>
+            <option value="аренда банка">Аренда банка</option>
+            <option value="аренда ЦТО">Аренда ЦТО</option>
+            <option value="покупка в Анъюск">Покупка в Анъюск</option>
+            <option value="собственность клиента">Собственность клиента</option>
+          </select>
+        </FormField>
 
         <FormField
           label="Модель ПК"
