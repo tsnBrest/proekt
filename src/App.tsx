@@ -19,6 +19,7 @@ import PcEquipmentPage from '@/components/pcEquipment/PcEquipmentPage';
 import TaximetersPage from '@/components/taximeters/TaximetersPage';
 import TokensPage from '@/components/tokens/TokensPage';
 import WorkstationOperationsPage from '@/components/workstationOperations/WorkstationOperationsPage';
+import PcActivationPage from '@/components/workstationOperations/PcActivationPage';
 import ContractsPage from '@/components/contracts/ContractsPage';
 import TradeObjectTypesPage from '@/components/tradeObjectTypes/TradeObjectTypesPage';
 import TokenBasesPage from '@/components/tokenBases/TokenBasesPage';
@@ -33,7 +34,7 @@ import type { CashRegisterOperationType, WorkstationOperationType } from '@/type
 
 type TopTab = 'equipment' | 'reports' | 'directories' | 'settings';
 type EquipmentSubtab = 'workstations' | 'taximeters' | 'cashRegisters';
-type WorkstationSubtab = WorkstationOperationType;
+type WorkstationSubtab = WorkstationOperationType | 'activation';
 type CashRegisterSubtab = 'list' | CashRegisterOperationType;
 type DirectorySubtab =
   | 'clients'
@@ -103,6 +104,7 @@ const CASH_REGISTER_SUBTABS: Subtab[] = [
 
 const WORKSTATION_SUBTABS: Subtab[] = [
   { id: 'registration', label: 'Регистрация ПК' },
+  { id: 'activation', label: 'Активация ПК' },
   { id: 'deregistration', label: 'Снятие ПК' },
   { id: 'address_change', label: 'Изменение адреса ПК' },
   { id: 'other', label: 'Другие документы' },
@@ -152,6 +154,9 @@ function App() {
   };
 
   const renderWorkstationContent = () => {
+    if (workstationSubtab === 'activation') {
+      return <PcActivationPage />;
+    }
     const config = WS_OPERATION_CONFIG[workstationSubtab];
     return (
       <WorkstationOperationsPage
