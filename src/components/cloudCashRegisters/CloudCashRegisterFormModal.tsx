@@ -112,7 +112,7 @@ export default function CloudCashRegisterFormModal({
   }, []);
 
   const models = useMemo(
-    () => allModels.filter((m) => m.model.toLowerCase().includes('dusic')),
+    () => allModels.filter((m) => m.model.toLowerCase().includes('dusik')),
     [allModels],
   );
 
@@ -289,7 +289,7 @@ export default function CloudCashRegisterFormModal({
         <FormField
           label="Модель ПК"
           htmlFor="ccr-pc-model"
-          hint={modelsLoading ? 'Загрузка моделей...' : 'Только модели Dusic'}
+          hint={modelsLoading ? 'Загрузка моделей...' : 'Только модели Dusik'}
         >
           <ModelPicker
             id="ccr-pc-model"

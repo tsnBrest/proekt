@@ -128,10 +128,10 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
 
   const isCpi = operatorType === 'cpi';
 
-  const models = useMemo(
-    () => allModels.filter((m) => m.model.toLowerCase().includes('dusik')),
-    [allModels],
-  );
+  const models = useMemo(() => {
+    if (isCpi) return allModels.filter((m) => m.model.toLowerCase().includes('titan'));
+    return allModels.filter((m) => m.model.toLowerCase().includes('ikassa'));
+  }, [allModels, isCpi]);
 
   const updateField = useCallback(<K extends keyof ExtendedValues>(key: K, value: ExtendedValues[K]) => {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -359,7 +359,7 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
         <FormField
           label="Модель ПК"
           htmlFor="token-pc-model"
-          hint={modelsLoading ? 'Загрузка моделей...' : 'Только модели Dusik'}
+          hint={modelsLoading ? 'Загрузка моделей...' : isCpi ? 'Только модели Titan' : 'Только модели iKassa'}
         >
           <ModelPicker
             id="token-pc-model"
@@ -529,7 +529,7 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
 
       {priceListOpen && (
         <PriceListPickerModal
-          filter="Dusik ИТП"
+          filter={isCpi ? 'Titan ИТП' : 'iKassa ИТП'}
           items={priceList}
           onClose={() => setPriceListOpen(false)}
           onSelect={(price) => {
