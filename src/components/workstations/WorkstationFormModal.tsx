@@ -167,7 +167,7 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
       }
     >
       <form id="workstation-form" onSubmit={handleSubmit} className="grid grid-cols-1 gap-x-5 gap-y-5 pb-16 sm:grid-cols-2">
-        <FormField label="№ токена" htmlFor="workstation-token" hint="Выбирается из справочника токенов">
+        <FormField label="Токен или DUSIC" htmlFor="workstation-token" hint="Выбирается из справочника токенов или облачных касс клиента">
           <button
             id="workstation-token"
             type="button"
@@ -304,11 +304,6 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
           <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 sm:col-span-2">{submitError}</p>
         )}
 
-        {values.is_cloud && (
-          <p className="rounded-lg bg-slate-50 px-4 py-2 text-xs text-slate-500 sm:col-span-2">
-            Отладка: client_id={values.client_id || '(пусто)'}, is_cloud={String(values.is_cloud)}, загружено касс: {cloudRegisters.length}, loading={String(cloudLoading)}, error={cloudError || '(нет)'}
-          </p>
-        )}
       </form>
 
       {tokenPickerOpen && (
@@ -319,9 +314,18 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
           onClose={() => setTokenPickerOpen(false)}
           onSelect={(tokenNumber) => {
             updateField('token_number', tokenNumber);
-            const token = allTokens.find((t) => t.number === tokenNumber);
-            if (token) {
-              updateField('installation_address', token.pc_installation_address || '');
+            const cloudMatch = cloudRegisters.find((r) => (r.pc_model || 'DUSIC') === tokenNumber);
+            if (cloudMatch) {
+              updateField('model', cloudMatch.pc_model || '');
+              updateField('software_version', cloudMatch.pc_software_version || '');
+              updateField('installation_address', cloudMatch.pc_installation_address || '');
+              setValues((prev) => ({ ...prev, is_cloud: true }));
+              setSelectedCloudId(cloudMatch.id);
+            } else {
+              const token = allTokens.find((t) => t.number === tokenNumber);
+              if (token) {
+                updateField('installation_address', token.pc_installation_address || '');
+              }
             }
           }}
         />
