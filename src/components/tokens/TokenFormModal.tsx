@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { FileText, Plus, Search, Users } from 'lucide-react';
+import { FileText, Plus, Search, Users, Database } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import FormField, { inputClassName } from '@/components/ui/FormField';
 import ModelPicker from '@/components/cashRegisters/ModelPicker';
 import ContractFormModal from '@/components/contracts/ContractFormModal';
+import { fetchTokenBatchesByOperator, deleteTokenBatchByNumber } from '@/lib/api/tokenBatches';
 import { createToken, updateToken, DUPLICATE_ERROR_CODE } from '@/lib/api/tokens';
 import { fetchEquipmentModels } from '@/lib/api/equipmentModels';
 import { fetchTradeObjectTypes } from '@/lib/api/tradeObjectTypes';
@@ -14,6 +15,7 @@ import type {
   Contract,
   EquipmentModel,
   Token,
+  TokenBatch,
   TokenInput,
   TokenOperatorType,
   TradeObjectType,
@@ -75,6 +77,7 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
 
   const [contractsOpen, setContractsOpen] = useState(false);
   const [clientsOpen, setClientsOpen] = useState(false);
+  const [tokenBaseOpen, setTokenBaseOpen] = useState(false);
 
   useEffect(() => {
     fetchEquipmentModels()
@@ -137,6 +140,16 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
         await updateToken(token.id, input);
       } else {
         await createToken(input);
+        if (isCpi) {
+          const batchNumber = values.number.replace(/^AVQ/i, '').trim();
+          if (batchNumber) {
+            try {
+              await deleteTokenBatchByNumber('ЦПИ', batchNumber);
+            } catch {
+              // non-critical
+            }
+          }
+        }
       }
       onSaved();
       onClose();
@@ -192,14 +205,26 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
         </FormField>
 
         <FormField label="Номер токена" htmlFor="token-number" error={numberError}>
-          <input
-            id="token-number"
-            className={inputClassName}
-            value={values.number}
-            onChange={(event) => updateField('number', event.target.value)}
-            placeholder="Например, 000123"
-            autoFocus
-          />
+          <div className="flex items-stretch gap-2">
+            <input
+              id="token-number"
+              className={inputClassName}
+              value={values.number}
+              onChange={(event) => updateField('number', event.target.value)}
+              placeholder="Например, AVQ000123"
+              autoFocus
+            />
+            {isCpi && (
+              <button
+                type="button"
+                onClick={() => setTokenBaseOpen(true)}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-teal-700"
+              >
+                <Database className="h-4 w-4" />
+                Токен ЦПИ
+              </button>
+            )}
+          </div>
         </FormField>
 
         {isCpi && (
@@ -413,6 +438,16 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
           onSelect={(clientId, clientName) => {
             setValues((prev) => ({ ...prev, client_id: clientId, client_name: clientName }));
             setClientsOpen(false);
+          }}
+        />
+      )}
+
+      {tokenBaseOpen && (
+        <TokenBasePickerModal
+          onClose={() => setTokenBaseOpen(false)}
+          onSelect={(tokenNumber) => {
+            updateField('number', tokenNumber);
+            setTokenBaseOpen(false);
           }}
         />
       )}
@@ -655,6 +690,109 @@ function ClientPickerModal({ currentClientId, onClose, onSelect }: ClientPickerM
                 </li>
               );
             })}
+          </ul>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+interface TokenBasePickerModalProps {
+  onClose: () => void;
+  onSelect: (tokenNumber: string) => void;
+}
+
+function TokenBasePickerModal({ onClose, onSelect }: TokenBasePickerModalProps) {
+  const [items, setItems] = useState<TokenBatch[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    fetchTokenBatchesByOperator('ЦПИ')
+      .then(setItems)
+      .catch(() => setLoadError('Не удалось загрузить базу токенов.'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const visibleItems = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return items;
+    return items.filter(
+      (item) =>
+        item.start_number.toLowerCase().includes(query) ||
+        item.end_number.toLowerCase().includes(query),
+    );
+  }, [items, search]);
+
+  const handleSelect = (batch: TokenBatch) => {
+    onSelect(`AVQ${batch.start_number}`);
+  };
+
+  return (
+    <Modal
+      maxWidth="max-w-3xl"
+      title="Токены база — ЦПИ"
+      onClose={onClose}
+      footer={
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
+        >
+          Закрыть
+        </button>
+      }
+    >
+      <div className="flex flex-col gap-4 pb-16">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Поиск по номеру токена"
+            aria-label="Поиск по базе токенов"
+            className={`${inputClassName} pl-10`}
+          />
+        </div>
+
+        {loading ? (
+          <p className="py-8 text-center text-sm text-slate-500">Загрузка...</p>
+        ) : loadError ? (
+          <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{loadError}</p>
+        ) : visibleItems.length === 0 ? (
+          <p className="py-8 text-center text-sm text-slate-500">
+            {items.length === 0 ? 'Токенов ЦПИ в базе нет.' : 'Ничего не найдено.'}
+          </p>
+        ) : (
+          <ul className="max-h-80 divide-y divide-slate-100 overflow-auto rounded-xl border border-slate-200">
+            {visibleItems.map((batch) => (
+              <li key={batch.id}>
+                <button
+                  type="button"
+                  onDoubleClick={() => handleSelect(batch)}
+                  onClick={(e) => {
+                    if (e.detail === 1) {
+                      e.currentTarget.classList.add('bg-blue-50');
+                    }
+                  }}
+                  className="flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors hover:bg-slate-50"
+                >
+                  <span className="flex flex-col gap-0.5">
+                    <span className="tabular-nums font-medium text-slate-900">
+                      AVQ{batch.start_number}
+                    </span>
+                    {batch.arrival_date && (
+                      <span className="text-xs text-slate-500">
+                        {new Date(batch.arrival_date).toLocaleDateString('ru-RU')}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-xs text-slate-400">Двойной клик для выбора</span>
+                </button>
+              </li>
+            ))}
           </ul>
         )}
       </div>

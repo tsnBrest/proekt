@@ -97,6 +97,7 @@ export interface TokenBatch {
   start_number: string;
   end_number: string;
   created_at: string;
+  arrival_date: string;
 }
 
 export type TokenBatchInput = Omit<TokenBatch, 'id' | 'created_at'>;

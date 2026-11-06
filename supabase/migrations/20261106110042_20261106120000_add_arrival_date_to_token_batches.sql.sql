@@ -1,0 +1,2 @@
+ALTER TABLE token_batches
+  ADD COLUMN IF NOT EXISTS arrival_date date NOT NULL DEFAULT CURRENT_DATE;

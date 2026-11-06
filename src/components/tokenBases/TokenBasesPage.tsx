@@ -17,6 +17,7 @@ type AddFormState = {
   operatorLabel: TokenBatchOperatorLabel;
   startNumber: string;
   endNumber: string;
+  arrivalDate: string;
 };
 
 export default function TokenBasesPage() {
@@ -80,7 +81,8 @@ export default function TokenBasesPage() {
 
   const openAddForm = (operatorLabel: TokenBatchOperatorLabel) => {
     setSubmitError('');
-    setAddForm({ operatorLabel, startNumber: '', endNumber: '' });
+    const today = new Date().toISOString().slice(0, 10);
+    setAddForm({ operatorLabel, startNumber: '', endNumber: '', arrivalDate: today });
   };
 
   const handleAddSubmit = async () => {
@@ -111,6 +113,7 @@ export default function TokenBasesPage() {
           operator_label: addForm.operatorLabel,
           start_number: String(n),
           end_number: String(n),
+          arrival_date: addForm.arrivalDate,
         });
       }
       for (const row of rows) {
@@ -171,7 +174,7 @@ export default function TokenBasesPage() {
             <tr>
               <th className="px-5 py-3">Поступление</th>
               <th className="px-5 py-3">Источник</th>
-              <th className="px-5 py-3">Дата</th>
+              <th className="px-5 py-3">Дата поступления</th>
               <th className="px-5 py-3 text-right">
                 <span className="sr-only">Действия</span>
               </th>
@@ -193,7 +196,9 @@ export default function TokenBasesPage() {
                   </span>
                 </td>
                 <td className="px-5 py-4 tabular-nums text-slate-700">
-                  {new Date(item.created_at).toLocaleDateString('ru-RU')}
+                  {item.arrival_date
+                    ? new Date(item.arrival_date).toLocaleDateString('ru-RU')
+                    : new Date(item.created_at).toLocaleDateString('ru-RU')}
                 </td>
                 <td className="px-5 py-4">
                   <div className="flex items-center justify-end gap-1">
@@ -288,6 +293,18 @@ export default function TokenBasesPage() {
                 className={`${inputClassName} bg-slate-100`}
                 value={addForm.operatorLabel}
                 disabled
+              />
+            </FormField>
+
+            <FormField label="Дата поступления" htmlFor="batch-arrival-date">
+              <input
+                id="batch-arrival-date"
+                type="date"
+                className={inputClassName}
+                value={addForm.arrivalDate}
+                onChange={(event) =>
+                  setAddForm((prev) => (prev ? { ...prev, arrivalDate: event.target.value } : prev))
+                }
               />
             </FormField>
 
