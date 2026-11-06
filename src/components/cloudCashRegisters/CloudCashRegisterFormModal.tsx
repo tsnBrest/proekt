@@ -430,6 +430,14 @@ export default function CloudCashRegisterFormModal({
           onSelect={(clientId, clientName) => {
             setValues((prev) => ({ ...prev, client_id: clientId, client_name: clientName }));
             setClientsOpen(false);
+            fetchContracts()
+              .then((contracts) => {
+                const clientContract = contracts.find((c) => c.client_id === clientId);
+                if (clientContract) {
+                  updateField('contract_number', clientContract.number);
+                }
+              })
+              .catch(() => undefined);
           }}
         />
       )}
