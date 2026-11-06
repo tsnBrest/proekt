@@ -23,6 +23,7 @@ import ContractsPage from '@/components/contracts/ContractsPage';
 import TradeObjectTypesPage from '@/components/tradeObjectTypes/TradeObjectTypesPage';
 import TokenBasesPage from '@/components/tokenBases/TokenBasesPage';
 import DocumentTemplatesPage from '@/components/documentTemplates/DocumentTemplatesPage';
+import PriceListPage from '@/components/priceList/PriceListPage';
 import { CollapsedDock } from '@/components/ui/Modal';
 import type { LucideIcon } from 'lucide-react';
 import type { CashRegisterOperationType, WorkstationOperationType } from '@/types/directory';
@@ -46,7 +47,8 @@ type SettingsSubtab =
   | 'pcEquipment'
   | 'models'
   | 'tradeObjectTypes'
-  | 'templates';
+  | 'templates'
+  | 'priceList';
 
 interface Subtab {
   id: string;
@@ -82,6 +84,7 @@ const SETTINGS_SUBTABS: Subtab[] = [
   { id: 'models', label: 'Модели' },
   { id: 'tradeObjectTypes', label: 'Типы торговых объектов' },
   { id: 'templates', label: 'Шаблоны документов' },
+  { id: 'priceList', label: 'Прейскурант цен' },
 ];
 
 const CASH_REGISTER_SUBTABS: Subtab[] = [
@@ -195,6 +198,8 @@ function App() {
         return <TradeObjectTypesPage />;
       case 'templates':
         return <DocumentTemplatesPage />;
+      case 'priceList':
+        return <PriceListPage />;
     }
   };
 

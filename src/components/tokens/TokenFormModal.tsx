@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { FileText, Plus, Search, Users, Database, Monitor } from 'lucide-react';
+import { FileText, Plus, Search, Users, Database, Monitor, DollarSign } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import FormField, { inputClassName } from '@/components/ui/FormField';
 import ModelPicker from '@/components/cashRegisters/ModelPicker';
@@ -9,6 +9,7 @@ import { fetchPcEquipment } from '@/lib/api/pcEquipment';
 import { createToken, updateToken, DUPLICATE_ERROR_CODE, TOKEN_STATUSES } from '@/lib/api/tokens';
 import { fetchEquipmentModels } from '@/lib/api/equipmentModels';
 import { fetchTradeObjectTypes } from '@/lib/api/tradeObjectTypes';
+import { fetchPriceList } from '@/lib/api/priceList';
 import { fetchContracts } from '@/lib/api/contracts';
 import { fetchClients } from '@/lib/api/clients';
 import type {
@@ -16,6 +17,7 @@ import type {
   Contract,
   EquipmentModel,
   PcEquipment,
+  PriceListItem,
   Token,
   TokenBatch,
   TokenInput,
@@ -54,6 +56,7 @@ type ExtendedValues = {
   to_name: string;
   contract_number: string;
   status: TokenStatus;
+  itp_price: string;
 };
 
 export default function TokenFormModal({ operatorType, token, onClose, onSaved }: TokenFormModalProps) {
@@ -75,6 +78,7 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
     to_name: token?.to_name ?? '',
     contract_number: token?.contract_number ?? '',
     status: token?.status ?? 'присвоен',
+    itp_price: token ? String(token.itp_price ?? 0) : '0',
   }));
   const [allModels, setAllModels] = useState<EquipmentModel[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
@@ -88,6 +92,8 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
   const [clientsOpen, setClientsOpen] = useState(false);
   const [tokenBaseOpen, setTokenBaseOpen] = useState(false);
   const [pcEquipmentOpen, setPcEquipmentOpen] = useState(false);
+  const [priceListOpen, setPriceListOpen] = useState(false);
+  const [priceList, setPriceList] = useState<PriceListItem[]>([]);
 
   useEffect(() => {
     fetchEquipmentModels()
@@ -98,6 +104,9 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
       .then(setTradeObjectTypes)
       .catch(() => undefined)
       .finally(() => setTradeObjectTypesLoading(false));
+    fetchPriceList()
+      .then(setPriceList)
+      .catch(() => undefined);
     if (values.client_id) {
       fetchClients()
         .then((clients) => {
@@ -148,6 +157,7 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
         to_name: '',
         contract_number: values.contract_number,
         status: values.status,
+        itp_price: parseFloat(values.itp_price) || 0,
       };
       if (token) {
         await updateToken(token.id, input);
@@ -432,6 +442,29 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
           </div>
         </FormField>
 
+        <FormField label="Стоимость ИТП" htmlFor="token-itp-price">
+          <div className="flex items-stretch gap-2">
+            <input
+              id="token-itp-price"
+              type="number"
+              step="0.001"
+              min="0"
+              className={inputClassName}
+              value={values.itp_price}
+              onChange={(event) => updateField('itp_price', event.target.value)}
+              placeholder="0.000"
+            />
+            <button
+              type="button"
+              onClick={() => setPriceListOpen(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700"
+            >
+              <DollarSign className="h-4 w-4" />
+              Выбрать
+            </button>
+          </div>
+        </FormField>
+
         {submitError && (
           <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 sm:col-span-2">{submitError}</p>
         )}
@@ -478,6 +511,18 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
             updateField('equipment_serial_number', serialNumber);
             updateField('equipment_status', status);
             setPcEquipmentOpen(false);
+          }}
+        />
+      )}
+
+      {priceListOpen && (
+        <PriceListPickerModal
+          filter={isCpi ? 'ЦПИ ИТП' : 'iKassa ИТП'}
+          items={priceList}
+          onClose={() => setPriceListOpen(false)}
+          onSelect={(price) => {
+            updateField('itp_price', String(price));
+            setPriceListOpen(false);
           }}
         />
       )}
@@ -918,6 +963,83 @@ function PcEquipmentPickerModal({ onClose, onSelect }: PcEquipmentPickerModalPro
                     <span className="font-medium text-slate-900">{item.name || '—'}</span>
                     <span className="text-xs tabular-nums text-slate-500">
                       {item.serial_number || '—'} · {item.status}
+                    </span>
+                  </span>
+                  <span className="text-xs text-slate-400">Двойной клик для выбора</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+interface PriceListPickerModalProps {
+  filter: string;
+  items: PriceListItem[];
+  onClose: () => void;
+  onSelect: (price: number) => void;
+}
+
+function PriceListPickerModal({ filter, items, onClose, onSelect }: PriceListPickerModalProps) {
+  const [search, setSearch] = useState('');
+
+  const filteredItems = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return items.filter((item) => {
+      if (!item.work_name.toLowerCase().includes(filter.toLowerCase())) return false;
+      if (!query) return true;
+      return item.work_name.toLowerCase().includes(query);
+    });
+  }, [items, filter, search]);
+
+  return (
+    <Modal
+      maxWidth="max-w-3xl"
+      title={`Выбор стоимости ИТП — ${filter}`}
+      onClose={onClose}
+      footer={
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
+        >
+          Закрыть
+        </button>
+      }
+    >
+      <div className="flex flex-col gap-4 pb-16">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Поиск по наименованию работы"
+            aria-label="Поиск прейскуранта"
+            className={`${inputClassName} pl-10`}
+          />
+        </div>
+
+        {filteredItems.length === 0 ? (
+          <p className="py-8 text-center text-sm text-slate-500">
+            {items.length === 0 ? 'Прейскурант пуст.' : 'Ничего не найдено.'}
+          </p>
+        ) : (
+          <ul className="max-h-80 divide-y divide-slate-100 overflow-auto rounded-xl border border-slate-200">
+            {filteredItems.map((item) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  onDoubleClick={() => onSelect(item.price)}
+                  className="flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors hover:bg-slate-50"
+                >
+                  <span className="flex flex-col gap-0.5">
+                    <span className="font-medium text-slate-900">{item.work_name}</span>
+                    <span className="text-xs tabular-nums text-slate-500">
+                      {item.price.toFixed(3)} · коэф. {item.coefficient.toFixed(3)}
                     </span>
                   </span>
                   <span className="text-xs text-slate-400">Двойной клик для выбора</span>

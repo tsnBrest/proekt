@@ -90,6 +90,7 @@ export interface Token {
   to_name: string;
   contract_number: string;
   status: TokenStatus;
+  itp_price: number;
   client: { name: string } | null;
 }
 
@@ -198,3 +199,12 @@ export interface DocumentTemplate {
 }
 
 export type DocumentTemplateInput = Omit<DocumentTemplate, 'id' | 'created_at'>;
+
+export interface PriceListItem {
+  id: string;
+  work_name: string;
+  price: number;
+  coefficient: number;
+}
+
+export type PriceListItemInput = Omit<PriceListItem, 'id'>;
