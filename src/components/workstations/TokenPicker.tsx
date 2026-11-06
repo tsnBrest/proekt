@@ -10,13 +10,18 @@ interface TokenPickerProps {
   assignedTokenNumbers: string[];
   currentTokenNumber: string;
   onClose: () => void;
-  onSelect: (tokenNumber: string, operatorType: TokenOperatorType) => void;
+  onSelect: (
+    tokenNumber: string,
+    operatorType: TokenOperatorType,
+    cloudRegister?: CloudCashRegister,
+  ) => void;
   clientId?: string | null;
+  cloudRegisters?: CloudCashRegister[];
 }
 
 type ListItem =
   | { kind: 'token'; id: string; number: string; operatorType: TokenOperatorType; subtitle: string }
-  | { kind: 'cloud'; id: string; number: string; pcModel: string; address: string };
+  | { kind: 'cloud'; id: string; number: string; pcModel: string; address: string; register: CloudCashRegister };
 
 export default function TokenPicker({
   assignedTokenNumbers,
@@ -24,12 +29,15 @@ export default function TokenPicker({
   onClose,
   onSelect,
   clientId = null,
+  cloudRegisters: externalCloudRegisters,
 }: TokenPickerProps) {
   const [tokens, setTokens] = useState<Token[]>([]);
-  const [cloudRegisters, setCloudRegisters] = useState<CloudCashRegister[]>([]);
+  const [internalCloudRegisters, setInternalCloudRegisters] = useState<CloudCashRegister[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [search, setSearch] = useState('');
+
+  const cloudRegisters = externalCloudRegisters ?? internalCloudRegisters;
 
   const assigned = useMemo(() => {
     const set = new Set(assignedTokenNumbers.map((n) => n.trim()).filter(Boolean));
@@ -44,11 +52,17 @@ export default function TokenPicker({
     setLoadError('');
     try {
       const [tokenList, cloudList] = await Promise.all([
-        clientId ? fetchTokensByClient(clientId, assignedTokenNumbers) : fetchUnassignedTokens('ikassa', assignedTokenNumbers),
-        clientId ? fetchCloudCashRegistersByClient(clientId) : Promise.resolve([] as CloudCashRegister[]),
+        clientId
+          ? fetchTokensByClient(clientId, assignedTokenNumbers)
+          : fetchUnassignedTokens('ikassa', assignedTokenNumbers),
+        externalCloudRegisters
+          ? Promise.resolve([] as CloudCashRegister[])
+          : clientId
+            ? fetchCloudCashRegistersByClient(clientId)
+            : Promise.resolve([] as CloudCashRegister[]),
       ]);
       setTokens(tokenList);
-      setCloudRegisters(cloudList);
+      if (!externalCloudRegisters) setInternalCloudRegisters(cloudList);
     } catch {
       setLoadError('Не удалось загрузить список.');
     } finally {
@@ -74,6 +88,7 @@ export default function TokenPicker({
       number: r.pc_model || 'DUSIC',
       pcModel: r.pc_model,
       address: r.pc_installation_address,
+      register: r,
     }));
     return [...tokenItems, ...cloudItems];
   }, [tokens, cloudRegisters]);
@@ -90,10 +105,7 @@ export default function TokenPicker({
   }, [items, search]);
 
   return (
-    <Modal
-      title={clientId ? 'Токен или DUSIC' : 'Выбор токена или DUSIC'}
-      onClose={onClose}
-    >
+    <Modal title={clientId ? 'Токен или DUSIC' : 'Выбор токена или DUSIC'} onClose={onClose}>
       <div className="flex flex-col gap-4 pb-16">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -140,19 +152,15 @@ export default function TokenPicker({
                     if (item.kind === 'token') {
                       onSelect(item.number, item.operatorType);
                     } else {
-                      onSelect(item.number, 'ikassa');
+                      onSelect(item.number, 'ikassa', item.register);
                     }
                     onClose();
                   }}
                   className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-blue-50"
                 >
-                  {item.kind === 'cloud' && (
-                    <Cloud className="h-4 w-4 shrink-0 text-blue-500" />
-                  )}
+                  {item.kind === 'cloud' && <Cloud className="h-4 w-4 shrink-0 text-blue-500" />}
                   <span className="flex flex-1 flex-col gap-0.5">
-                    <span className="tabular-nums font-medium text-slate-900">
-                      {item.number}
-                    </span>
+                    <span className="tabular-nums font-medium text-slate-900">{item.number}</span>
                     {item.kind === 'token' && item.subtitle && (
                       <span className="text-xs text-slate-500">{item.subtitle}</span>
                     )}

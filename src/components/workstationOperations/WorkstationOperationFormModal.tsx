@@ -13,10 +13,12 @@ import { fetchClients } from '@/lib/api/clients';
 import { fetchEquipmentModels } from '@/lib/api/equipmentModels';
 import { fetchTokensByClient, updateTokenStatus, updateTokenAddress } from '@/lib/api/tokens';
 import { fetchCashRegistersByClient, updateCashRegisterStatus } from '@/lib/api/cashRegisters';
+import { fetchCloudCashRegistersByClient } from '@/lib/api/cloudCashRegisters';
 import { createTokenHistoryEntry } from '@/lib/api/tokenHistory';
 import type {
   CashRegister,
   Client,
+  CloudCashRegister,
   EquipmentModel,
   Token,
   WorkstationOperation,
@@ -87,6 +89,7 @@ export default function WorkstationOperationFormModal({
   const [modelsLoading, setModelsLoading] = useState(true);
   const [clientTokens, setClientTokens] = useState<Token[]>([]);
   const [clientCashRegisters, setClientCashRegisters] = useState<CashRegister[]>([]);
+  const [clientCloudRegisters, setClientCloudRegisters] = useState<CloudCashRegister[]>([]);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -122,6 +125,7 @@ export default function WorkstationOperationFormModal({
     if (!clientId) {
       setClientTokens([]);
       setClientCashRegisters([]);
+      setClientCloudRegisters([]);
       return;
     }
     try {
@@ -135,6 +139,12 @@ export default function WorkstationOperationFormModal({
       setClientCashRegisters(registers);
     } catch {
       setClientCashRegisters([]);
+    }
+    try {
+      const cloud = await fetchCloudCashRegistersByClient(clientId);
+      setClientCloudRegisters(cloud);
+    } catch {
+      setClientCloudRegisters([]);
     }
   }, [clientId]);
 
@@ -155,8 +165,8 @@ export default function WorkstationOperationFormModal({
     setSlot2((prev) => ({ ...prev, selectedToken: null, token_number: '', cashRegisterId: '' }));
   };
 
-  const getSelectedCashRegister = (slot: PcSlot) =>
-    clientCashRegisters.find((r) => r.id === slot.cashRegisterId);
+  const getSelectedCloudRegister = (slot: PcSlot) =>
+    clientCloudRegisters.find((r) => (r.pc_model || 'DUSIC') === slot.token_number);
 
   const isSlotTokenBlocked = (slot: PcSlot) =>
     isRegistration &&
@@ -167,7 +177,7 @@ export default function WorkstationOperationFormModal({
       slot.selectedToken.status === 'снят с регистрации');
 
   const isSlotCashRegisterBlocked = (slot: PcSlot) => {
-    const reg = getSelectedCashRegister(slot);
+    const reg = getSelectedCloudRegister(slot);
     return (
       isRegistration &&
       slot.is_cloud &&
@@ -181,8 +191,7 @@ export default function WorkstationOperationFormModal({
     !slot.pc_model.trim() &&
     !slot.pc_software_version.trim() &&
     !slot.token_number.trim() &&
-    !slot.address.trim() &&
-    !slot.cashRegisterId;
+    !slot.address.trim();
 
   const buildPayload = (slot: PcSlot): WorkstationOperationInput => ({
     workstation_id: null,
@@ -229,7 +238,7 @@ export default function WorkstationOperationFormModal({
       });
     }
     if (isRegistration && slot.is_cloud) {
-      const reg = getSelectedCashRegister(slot);
+      const reg = getSelectedCloudRegister(slot);
       if (reg) await updateCashRegisterStatus(reg.id, 'зарегистрирована облачная');
     }
   };
@@ -250,17 +259,13 @@ export default function WorkstationOperationFormModal({
     if (!operationDate) nextErrors.operation_date = 'Укажите дату';
     if (isRegistration && !clientId) nextErrors.client_id = 'Выберите клиента';
     if (needsAddress && !slot1.address.trim()) nextErrors['slot1_address'] = 'Укажите адрес';
-    if (isRegistration && !slot1.is_cloud && !slot1.token_number.trim())
-      nextErrors['slot1_token'] = 'Выберите токен или отметьте «Облачная»';
-    if (isRegistration && slot1.is_cloud && !slot1.cashRegisterId)
-      nextErrors['slot1_token'] = 'Выберите облачную кассу';
+    if (isRegistration && !slot1.token_number.trim())
+      nextErrors['slot1_token'] = 'Выберите токен или DUSIC';
     if (needsNotes && !notes.trim()) nextErrors.notes = 'Укажите описание';
 
     const hasSlot2 = isRegistration && !isSlot2Empty(slot2);
-    if (hasSlot2 && isRegistration && !slot2.is_cloud && !slot2.token_number.trim())
-      nextErrors['slot2_token'] = 'Выберите токен или отметьте «Облачная»';
-    if (hasSlot2 && isRegistration && slot2.is_cloud && !slot2.cashRegisterId)
-      nextErrors['slot2_token'] = 'Выберите облачную кассу';
+    if (hasSlot2 && isRegistration && !slot2.token_number.trim())
+      nextErrors['slot2_token'] = 'Выберите токен или DUSIC';
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -374,42 +379,12 @@ ${tableRows}
           />
         </FormField>
 
-        <FormField label="Тип регистрации" htmlFor={`${prefix}-cloud`}>
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input
-                id={`${prefix}-cloud`}
-                type="checkbox"
-                checked={slot.is_cloud}
-                onChange={(event) => {
-                  if (event.target.checked) {
-                    setSlot({ is_cloud: true, token_number: '', selectedToken: null });
-                  } else {
-                    setSlot({ is_cloud: false, cashRegisterId: '' });
-                  }
-                }}
-                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
-              />
-              Облачная
-            </label>
-            <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                checked={!slot.is_cloud}
-                onChange={() => setSlot({ is_cloud: false, cashRegisterId: '' })}
-                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
-              />
-              Токен
-            </label>
-          </div>
-        </FormField>
-
-        {isRegistration && !slot.is_cloud && (
+        {isRegistration && (
           <FormField
-            label="Токен"
+            label="Токен или DUSIC"
             htmlFor={`${prefix}-token`}
             error={errors[`${prefix}_token`]}
-            hint="Токены выбранного клиента"
+            hint={clientId ? 'Токены и облачные кассы выбранного клиента' : undefined}
           >
             <button
               id={`${prefix}-token`}
@@ -418,42 +393,8 @@ ${tableRows}
               disabled={!clientId}
               className={`${inputClassName} text-left ${slot.token_number ? 'text-slate-900' : 'text-slate-400'} disabled:cursor-not-allowed disabled:opacity-50`}
             >
-              {slot.token_number || (clientId ? 'Выберите токен' : 'Сначала выберите клиента')}
+              {slot.token_number || (clientId ? 'Выберите токен или DUSIC' : 'Сначала выберите клиента')}
             </button>
-          </FormField>
-        )}
-
-        {isRegistration && slot.is_cloud && (
-          <FormField
-            label="Облачная касса"
-            htmlFor={`${prefix}-cash-register`}
-            error={errors[`${prefix}_token`]}
-            hint={clientCashRegisters.length === 0 ? 'Нет касс у клиента' : undefined}
-          >
-            <select
-              id={`${prefix}-cash-register`}
-              className={inputClassName}
-              value={slot.cashRegisterId}
-              onChange={(event) => {
-                const reg = clientCashRegisters.find((r) => r.id === event.target.value);
-                setSlot({
-                  cashRegisterId: event.target.value,
-                  pc_model: reg?.model ?? slot.pc_model,
-                  pc_software_version: reg?.software_version ?? slot.pc_software_version,
-                  address: reg?.installation_address ?? slot.address,
-                });
-              }}
-            >
-              <option value="">
-                {clientCashRegisters.length === 0 ? 'Нет доступных касс' : 'Выберите кассу'}
-              </option>
-              {clientCashRegisters.map((reg) => (
-                <option key={reg.id} value={reg.id}>
-                  {reg.model} — {reg.serial_number}
-                  {reg.register_status ? ` (${reg.register_status})` : ''}
-                </option>
-              ))}
-            </select>
           </FormField>
         )}
 
@@ -649,17 +590,34 @@ ${tableRows}
           assignedTokenNumbers={[]}
           currentTokenNumber={tokenPickerSlot === 1 ? slot1.token_number : slot2.token_number}
           clientId={clientId}
+          cloudRegisters={clientCloudRegisters}
           onClose={() => setTokenPickerSlot(null)}
-          onSelect={(tokenNumber) => {
-            const token = clientTokens.find((t) => t.number === tokenNumber);
-            const patch: Partial<PcSlot> = { token_number: tokenNumber };
-            if (token) {
-              patch.selectedToken = token;
-              patch.pc_model = token.pc_model || '';
-              patch.pc_software_version = token.pc_software_version || '';
-              patch.address = token.pc_installation_address || '';
+          onSelect={(tokenNumber, operatorType, cloudRegister) => {
+            if (cloudRegister) {
+              const patch: Partial<PcSlot> = {
+                token_number: cloudRegister.pc_model || 'DUSIC',
+                is_cloud: true,
+                selectedToken: null,
+                pc_model: cloudRegister.pc_model || '',
+                pc_software_version: cloudRegister.pc_software_version || '',
+                address: cloudRegister.pc_installation_address || '',
+              };
+              updateSlot(tokenPickerSlot, patch);
+            } else {
+              const token = clientTokens.find((t) => t.number === tokenNumber);
+              const patch: Partial<PcSlot> = {
+                token_number: tokenNumber,
+                is_cloud: false,
+                cashRegisterId: '',
+              };
+              if (token) {
+                patch.selectedToken = token;
+                patch.pc_model = token.pc_model || '';
+                patch.pc_software_version = token.pc_software_version || '';
+                patch.address = token.pc_installation_address || '';
+              }
+              updateSlot(tokenPickerSlot, patch);
             }
-            updateSlot(tokenPickerSlot, patch);
             setTokenPickerSlot(null);
           }}
         />
