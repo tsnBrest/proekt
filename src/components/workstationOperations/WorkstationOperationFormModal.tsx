@@ -13,9 +13,10 @@ import { fetchClients } from '@/lib/api/clients';
 import { fetchEquipmentModels } from '@/lib/api/equipmentModels';
 import { fetchTokensByClient, updateTokenStatus, updateTokenAddress } from '@/lib/api/tokens';
 import { fetchCashRegistersByClient, updateCashRegisterStatus } from '@/lib/api/cashRegisters';
-import { fetchCloudCashRegistersByClient } from '@/lib/api/cloudCashRegisters';
+import { fetchCloudCashRegistersByClient, updateCloudCashRegisterStatus } from '@/lib/api/cloudCashRegisters';
 import { createTokenHistoryEntry } from '@/lib/api/tokenHistory';
 import { createPcActivation } from '@/lib/api/pcActivations';
+import { createDisconnectedPc } from '@/lib/api/disconnectedPcs';
 import type {
   CashRegister,
   Client,
@@ -238,9 +239,11 @@ export default function WorkstationOperationFormModal({
     }
     if (operationType === 'deregistration' && slot.selectedToken) {
       const previousStatus = slot.selectedToken.status;
-      await updateTokenStatus(slot.selectedToken.id, 'снят с регистрации');
+      const token = slot.selectedToken;
+      const reason = deregistrationReason === 'Прочие' ? deregistrationCustomText.trim() : deregistrationReason;
+      await updateTokenStatus(token.id, 'снят с регистрации');
       await createTokenHistoryEntry({
-        token_id: slot.selectedToken.id,
+        token_id: token.id,
         action: 'снятие',
         action_date: operationDate,
         details: notes.trim(),
@@ -250,13 +253,78 @@ export default function WorkstationOperationFormModal({
         activation_date: operationDate,
         client_id: clientId,
         device_kind: 'token',
-        device_id: slot.selectedToken.id,
+        device_id: token.id,
         device_number: slot.token_number.trim(),
         previous_status: previousStatus,
         new_status: 'ОТКЛЮЧЕН',
         reg_number_skko: '',
-        notes: deregistrationReason === 'Прочие' ? deregistrationCustomText.trim() : deregistrationReason,
+        notes: reason,
       });
+      await createDisconnectedPc({
+        original_table: 'tokens',
+        original_id: token.id,
+        operator_type: token.operator_type,
+        number: token.number,
+        pc_model: token.pc_model,
+        pc_software_version: token.pc_software_version,
+        client_id: clientId,
+        equipment_model: token.equipment_model,
+        equipment_serial_number: token.equipment_serial_number,
+        equipment_name: token.equipment_name,
+        installation_name: token.installation_name,
+        pc_installation_address: token.pc_installation_address,
+        working_hours: token.working_hours,
+        gln: token.gln,
+        to_type: token.to_type,
+        to_name: token.to_name,
+        contract_number: token.contract_number,
+        itp_price: token.itp_price,
+        previous_status: previousStatus,
+        disconnect_reason: reason,
+        disconnect_date: operationDate,
+      });
+    }
+    if (operationType === 'deregistration' && slot.is_cloud) {
+      const reg = getSelectedCloudRegister(slot);
+      if (reg) {
+        const previousStatus = reg.register_status || '';
+        const reason = deregistrationReason === 'Прочие' ? deregistrationCustomText.trim() : deregistrationReason;
+        await updateCloudCashRegisterStatus(reg.id, 'снят с регистрации');
+        await createPcActivation({
+          activation_date: operationDate,
+          client_id: clientId,
+          device_kind: 'cloud',
+          device_id: reg.id,
+          device_number: slot.token_number.trim(),
+          previous_status: previousStatus,
+          new_status: 'ОТКЛЮЧЕН',
+          reg_number_skko: '',
+          notes: reason,
+        });
+        await createDisconnectedPc({
+          original_table: 'cloud_cash_registers',
+          original_id: reg.id,
+          operator_type: '',
+          number: slot.token_number.trim(),
+          pc_model: reg.pc_model,
+          pc_software_version: reg.pc_software_version,
+          client_id: clientId,
+          equipment_model: reg.equipment_model,
+          equipment_serial_number: reg.equipment_serial_number,
+          equipment_name: reg.equipment_name,
+          installation_name: reg.installation_name,
+          pc_installation_address: reg.pc_installation_address,
+          working_hours: reg.working_hours,
+          gln: reg.gln,
+          to_type: reg.to_type,
+          to_name: reg.to_name,
+          contract_number: reg.contract_number,
+          itp_price: reg.itp_price,
+          previous_status: previousStatus,
+          disconnect_reason: reason,
+          disconnect_date: operationDate,
+        });
+      }
     }
     if (operationType === 'address_change' && slot.selectedToken) {
       await updateTokenAddress(slot.selectedToken.id, slot.address.trim());

@@ -27,6 +27,7 @@ import DocumentTemplatesPage from '@/components/documentTemplates/DocumentTempla
 import PriceListPage from '@/components/priceList/PriceListPage';
 import CloudCashRegistersPage from '@/components/cloudCashRegisters/CloudCashRegistersPage';
 import StatusesPage from '@/components/statuses/StatusesPage';
+import DisconnectedPcsPage from '@/components/disconnectedPcs/DisconnectedPcsPage';
 import { CollapsedDock } from '@/components/ui/Modal';
 import type { LucideIcon } from 'lucide-react';
 import type { CashRegisterOperationType, WorkstationOperationType } from '@/types/directory';
@@ -43,7 +44,8 @@ type DirectorySubtab =
   | 'tokenBases'
   | 'tokensIkassa'
   | 'tokensCpi'
-  | 'cloudCashRegisters';
+  | 'cloudCashRegisters'
+  | 'disconnectedPcs';
 
 type SettingsSubtab =
   | 'banks'
@@ -81,6 +83,7 @@ const DIRECTORY_SUBTABS: Subtab[] = [
   { id: 'tokensIkassa', label: 'Токены iKassa' },
   { id: 'tokensCpi', label: 'Токены ЦПИ' },
   { id: 'cloudCashRegisters', label: 'Облачные кассы' },
+  { id: 'disconnectedPcs', label: 'Отключённые ПК' },
 ];
 
 const SETTINGS_SUBTABS: Subtab[] = [
@@ -194,6 +197,8 @@ function App() {
         return <TokensPage operatorType="cpi" />;
       case 'cloudCashRegisters':
         return <CloudCashRegistersPage />;
+      case 'disconnectedPcs':
+        return <DisconnectedPcsPage />;
     }
   };
 

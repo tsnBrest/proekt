@@ -43,3 +43,11 @@ export async function deleteCloudCashRegister(id: string): Promise<void> {
   const { error } = await supabase.from('cloud_cash_registers').delete().eq('id', id);
   if (error) throw error;
 }
+
+export async function updateCloudCashRegisterStatus(id: string, status: string): Promise<void> {
+  const { error } = await supabase
+    .from('cloud_cash_registers')
+    .update({ register_status: status, updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw error;
+}

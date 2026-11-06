@@ -8,6 +8,7 @@ import { fetchTokensByClient } from '@/lib/api/tokens';
 import { fetchCloudCashRegistersByClient } from '@/lib/api/cloudCashRegisters';
 import { createPcActivation } from '@/lib/api/pcActivations';
 import { updateTokenStatus } from '@/lib/api/tokens';
+import { updateCloudCashRegisterStatus } from '@/lib/api/cloudCashRegisters';
 import { fetchAllStatuses } from '@/lib/api/statuses';
 import type { Client, CloudCashRegister, Status, Token } from '@/types/directory';
 
@@ -130,6 +131,8 @@ export default function PcActivationFormModal({ onClose, onSaved }: PcActivation
       });
       if (device.kind === 'token') {
         await updateTokenStatus(device.id, newStatus);
+      } else {
+        await updateCloudCashRegisterStatus(device.id, newStatus);
       }
       onSaved();
       onClose();
