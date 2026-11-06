@@ -4,7 +4,7 @@ import type { Token, TokenInput, TokenOperatorType } from '@/types/directory';
 export const DUPLICATE_ERROR_CODE = '23505';
 
 const TOKEN_FIELDS =
-  'id, number, operator_type, client_id, pc_model, pc_software_version, equipment_model, equipment_serial_number, installation_name, pc_installation_address, working_hours, gln, to_type, to_name';
+  'id, number, operator_type, client_id, pc_model, pc_software_version, equipment_model, equipment_serial_number, installation_name, pc_installation_address, working_hours, gln, to_type, to_name, contract_number';
 
 export async function fetchTokens(operatorType?: TokenOperatorType): Promise<Token[]> {
   let query = supabase

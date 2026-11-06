@@ -84,9 +84,17 @@ export interface Token {
   gln: string;
   to_type: string;
   to_name: string;
+  contract_number: string;
 }
 
 export type TokenInput = Omit<Token, 'id'>;
+
+export interface TradeObjectType {
+  id: string;
+  name: string;
+}
+
+export type TradeObjectTypeInput = Omit<TradeObjectType, 'id'>;
 
 export interface EquipmentModel {
   id: string;

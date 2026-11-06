@@ -57,7 +57,7 @@ export default function TokensPage({ operatorType }: TokensPageProps) {
         item.working_hours.toLowerCase().includes(query) ||
         item.gln.toLowerCase().includes(query) ||
         item.to_type.toLowerCase().includes(query) ||
-        item.to_name.toLowerCase().includes(query),
+        item.contract_number.toLowerCase().includes(query),
     );
   }, [items, search]);
 
@@ -123,11 +123,10 @@ export default function TokensPage({ operatorType }: TokensPageProps) {
               <th className="px-5 py-3">Номер токена</th>
               <th className="px-5 py-3">Модель ПК</th>
               <th className="px-5 py-3">Версия ПО</th>
-              <th className="px-5 py-3">Модель оборудования</th>
-              <th className="px-5 py-3">Сер. номер</th>
-              <th className="px-5 py-3">Место установки</th>
+              <th className="px-5 py-3">Адрес установки ПК</th>
               <th className="px-5 py-3">Режим работы</th>
               <th className="px-5 py-3">GLN</th>
+              <th className="px-5 py-3">№ договора</th>
               <th className="px-5 py-3 text-right">
                 <span className="sr-only">Действия</span>
               </th>
@@ -139,11 +138,10 @@ export default function TokensPage({ operatorType }: TokensPageProps) {
                 <td className="px-5 py-4 tabular-nums font-medium text-slate-900">{item.number}</td>
                 <td className="px-5 py-4 text-slate-700">{item.pc_model || '—'}</td>
                 <td className="px-5 py-4 tabular-nums text-slate-700">{item.pc_software_version || '—'}</td>
-                <td className="px-5 py-4 text-slate-700">{item.equipment_model || '—'}</td>
-                <td className="px-5 py-4 tabular-nums text-slate-700">{item.equipment_serial_number || '—'}</td>
                 <td className="px-5 py-4 text-slate-700">{item.pc_installation_address || '—'}</td>
                 <td className="px-5 py-4 text-slate-700">{item.working_hours || '—'}</td>
                 <td className="px-5 py-4 tabular-nums text-slate-700">{item.gln || '—'}</td>
+                <td className="px-5 py-4 tabular-nums text-slate-700">{item.contract_number || '—'}</td>
                 <td className="px-5 py-4">
                   <div className="flex items-center justify-end gap-1">
                     <button

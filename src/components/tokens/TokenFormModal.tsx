@@ -1,10 +1,19 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { FileText } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import FormField, { inputClassName } from '@/components/ui/FormField';
 import ModelPicker from '@/components/cashRegisters/ModelPicker';
+import ContractsPage from '@/components/contracts/ContractsPage';
 import { createToken, updateToken, DUPLICATE_ERROR_CODE } from '@/lib/api/tokens';
 import { fetchEquipmentModels } from '@/lib/api/equipmentModels';
-import type { EquipmentModel, Token, TokenInput, TokenOperatorType } from '@/types/directory';
+import { fetchTradeObjectTypes } from '@/lib/api/tradeObjectTypes';
+import type {
+  EquipmentModel,
+  Token,
+  TokenInput,
+  TokenOperatorType,
+  TradeObjectType,
+} from '@/types/directory';
 
 interface TokenFormModalProps {
   operatorType: TokenOperatorType;
@@ -30,6 +39,7 @@ type ExtendedValues = {
   gln: string;
   to_type: string;
   to_name: string;
+  contract_number: string;
 };
 
 export default function TokenFormModal({ operatorType, token, onClose, onSaved }: TokenFormModalProps) {
@@ -45,19 +55,34 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
     gln: token?.gln ?? '',
     to_type: token?.to_type ?? '',
     to_name: token?.to_name ?? '',
+    contract_number: token?.contract_number ?? '',
   }));
-  const [models, setModels] = useState<EquipmentModel[]>([]);
+  const [allModels, setAllModels] = useState<EquipmentModel[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
+  const [tradeObjectTypes, setTradeObjectTypes] = useState<TradeObjectType[]>([]);
+  const [tradeObjectTypesLoading, setTradeObjectTypesLoading] = useState(true);
   const [numberError, setNumberError] = useState('');
   const [submitError, setSubmitError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [contractsOpen, setContractsOpen] = useState(false);
 
   useEffect(() => {
     fetchEquipmentModels()
-      .then(setModels)
+      .then(setAllModels)
       .catch(() => undefined)
       .finally(() => setModelsLoading(false));
+    fetchTradeObjectTypes()
+      .then(setTradeObjectTypes)
+      .catch(() => undefined)
+      .finally(() => setTradeObjectTypesLoading(false));
   }, []);
+
+  const isCpi = operatorType === 'cpi';
+
+  const models = useMemo(() => {
+    if (!isCpi) return allModels;
+    return allModels.filter((m) => m.model.toLowerCase().includes('titan'));
+  }, [allModels, isCpi]);
 
   const updateField = useCallback(<K extends keyof ExtendedValues>(key: K, value: ExtendedValues[K]) => {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -80,14 +105,15 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
         client_id: token?.client_id ?? null,
         pc_model: values.pc_model,
         pc_software_version: values.pc_software_version,
-        equipment_model: values.equipment_model,
-        equipment_serial_number: values.equipment_serial_number,
-        installation_name: values.installation_name,
+        equipment_model: isCpi ? '' : values.equipment_model,
+        equipment_serial_number: isCpi ? '' : values.equipment_serial_number,
+        installation_name: isCpi ? '' : values.installation_name,
         pc_installation_address: values.pc_installation_address,
         working_hours: values.working_hours,
         gln: values.gln,
         to_type: values.to_type,
-        to_name: values.to_name,
+        to_name: isCpi ? '' : values.to_name,
+        contract_number: values.contract_number,
       };
       if (token) {
         await updateToken(token.id, input);
@@ -108,12 +134,9 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
     }
   };
 
-  const isIkassa = operatorType === 'ikassa';
-  const maxWidth = isIkassa ? 'max-w-4xl' : 'max-w-4xl';
-
   return (
     <Modal
-      maxWidth={maxWidth}
+      maxWidth="max-w-4xl"
       title={token ? `Редактирование токена ${OPERATOR_LABEL[operatorType]}` : `Новый токен ${OPERATOR_LABEL[operatorType]}`}
       onClose={onClose}
       footer={
@@ -164,7 +187,13 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
         <FormField
           label="Модель ПК"
           htmlFor="token-pc-model"
-          hint={modelsLoading ? 'Загрузка моделей...' : 'Выбор из справочника моделей'}
+          hint={
+            modelsLoading
+              ? 'Загрузка моделей...'
+              : isCpi
+                ? 'Только модели Titan'
+                : 'Выбор из справочника моделей'
+          }
         >
           <ModelPicker
             id="token-pc-model"
@@ -186,63 +215,96 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
           />
         </FormField>
 
-        <FormField label="Модель оборудования" htmlFor="token-equipment-model">
-          <input
-            id="token-equipment-model"
-            className={inputClassName}
-            value={values.equipment_model}
-            onChange={(event) => updateField('equipment_model', event.target.value)}
-            placeholder="Модель оборудования"
-          />
-        </FormField>
+        {!isCpi && (
+          <FormField label="Модель оборудования" htmlFor="token-equipment-model">
+            <input
+              id="token-equipment-model"
+              className={inputClassName}
+              value={values.equipment_model}
+              onChange={(event) => updateField('equipment_model', event.target.value)}
+              placeholder="Модель оборудования"
+            />
+          </FormField>
+        )}
 
-        <FormField label="Заводской номер оборудования" htmlFor="token-equipment-serial">
-          <input
-            id="token-equipment-serial"
-            className={inputClassName}
-            value={values.equipment_serial_number}
-            onChange={(event) => updateField('equipment_serial_number', event.target.value)}
-            placeholder="Серийный номер"
-          />
-        </FormField>
+        {!isCpi && (
+          <FormField label="Заводской номер оборудования" htmlFor="token-equipment-serial">
+            <input
+              id="token-equipment-serial"
+              className={inputClassName}
+              value={values.equipment_serial_number}
+              onChange={(event) => updateField('equipment_serial_number', event.target.value)}
+              placeholder="Серийный номер"
+            />
+          </FormField>
+        )}
 
-        <FormField label="Вид ТО" htmlFor="token-to-type">
-          <input
-            id="token-to-type"
-            className={inputClassName}
-            value={values.to_type}
-            onChange={(event) => updateField('to_type', event.target.value)}
-            placeholder="Вид технического обслуживания"
-          />
-        </FormField>
+        {isCpi ? (
+          <FormField
+            label="Вид торгового объекта"
+            htmlFor="token-trade-object-type"
+            hint={tradeObjectTypesLoading ? 'Загрузка справочника...' : 'Выбор из справочника типов'}
+          >
+            <select
+              id="token-trade-object-type"
+              className={inputClassName}
+              value={values.to_type}
+              onChange={(event) => updateField('to_type', event.target.value)}
+              disabled={tradeObjectTypesLoading}
+            >
+              <option value="">
+                {tradeObjectTypesLoading ? 'Загрузка...' : 'Выберите тип'}
+              </option>
+              {tradeObjectTypes.map((tot) => (
+                <option key={tot.id} value={tot.name}>
+                  {tot.name}
+                </option>
+              ))}
+            </select>
+          </FormField>
+        ) : (
+          <FormField label="Вид ТО" htmlFor="token-to-type">
+            <input
+              id="token-to-type"
+              className={inputClassName}
+              value={values.to_type}
+              onChange={(event) => updateField('to_type', event.target.value)}
+              placeholder="Вид технического обслуживания"
+            />
+          </FormField>
+        )}
 
-        <FormField label="Наименование ТО" htmlFor="token-to-name">
-          <input
-            id="token-to-name"
-            className={inputClassName}
-            value={values.to_name}
-            onChange={(event) => updateField('to_name', event.target.value)}
-            placeholder="Наименование технического обслуживания"
-          />
-        </FormField>
+        {!isCpi && (
+          <FormField label="Наименование ТО" htmlFor="token-to-name">
+            <input
+              id="token-to-name"
+              className={inputClassName}
+              value={values.to_name}
+              onChange={(event) => updateField('to_name', event.target.value)}
+              placeholder="Наименование технического обслуживания"
+            />
+          </FormField>
+        )}
 
-        <FormField label="Наименование места установки" htmlFor="token-installation-name">
-          <input
-            id="token-installation-name"
-            className={inputClassName}
-            value={values.installation_name}
-            onChange={(event) => updateField('installation_name', event.target.value)}
-            placeholder="Наименование места установки"
-          />
-        </FormField>
+        {!isCpi && (
+          <FormField label="Наименование места установки" htmlFor="token-installation-name">
+            <input
+              id="token-installation-name"
+              className={inputClassName}
+              value={values.installation_name}
+              onChange={(event) => updateField('installation_name', event.target.value)}
+              placeholder="Наименование места установки"
+            />
+          </FormField>
+        )}
 
-        <FormField label="Место установки ПК" htmlFor="token-pc-installation-address">
+        <FormField label="Адрес установки ПК" htmlFor="token-pc-installation-address">
           <input
             id="token-pc-installation-address"
             className={inputClassName}
             value={values.pc_installation_address}
             onChange={(event) => updateField('pc_installation_address', event.target.value)}
-            placeholder="Адрес места установки ПК"
+            placeholder="Адрес установки ПК"
           />
         </FormField>
 
@@ -266,10 +328,47 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
           />
         </FormField>
 
+        {isCpi && (
+          <FormField
+            label="№ договора с ЦТО «Анъюск»"
+            htmlFor="token-contract-number"
+          >
+            <div className="flex items-stretch gap-2">
+              <input
+                id="token-contract-number"
+                className={inputClassName}
+                value={values.contract_number}
+                onChange={(event) => updateField('contract_number', event.target.value)}
+                placeholder="Номер договора"
+              />
+              <button
+                type="button"
+                onClick={() => setContractsOpen(true)}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+              >
+                <FileText className="h-4 w-4" />
+                Договор
+              </button>
+            </div>
+          </FormField>
+        )}
+
         {submitError && (
           <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 sm:col-span-2">{submitError}</p>
         )}
       </form>
+
+      {contractsOpen && (
+        <Modal
+          maxWidth="max-w-5xl"
+          title="Справочник договоров"
+          onClose={() => setContractsOpen(false)}
+        >
+          <div className="pb-16">
+            <ContractsPage />
+          </div>
+        </Modal>
+      )}
     </Modal>
   );
 }
