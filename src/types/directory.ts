@@ -38,6 +38,7 @@ export interface CashRegister {
   software_version: string;
   client_id: string | null;
   installation_address: string;
+  register_status: string;
   client: { name: string } | null;
 }
 
@@ -95,6 +96,18 @@ export interface Token {
 }
 
 export type TokenInput = Omit<Token, 'id' | 'client'>;
+
+export interface TokenHistoryEntry {
+  id: string;
+  token_id: string;
+  action: string;
+  action_date: string;
+  details: string;
+  address: string;
+  created_at: string;
+}
+
+export type TokenHistoryInput = Omit<TokenHistoryEntry, 'id' | 'created_at'>;
 
 export type PcEquipmentStatus = 'аренда банка' | 'аренда ЦТО' | 'покупка в Анъюск' | 'собственность клиента';
 

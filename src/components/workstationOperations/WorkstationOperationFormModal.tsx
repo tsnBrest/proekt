@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { FileText, KeyRound, Plus } from 'lucide-react';
+import { FileText, KeyRound, Plus, Cloud, TriangleAlert } from 'lucide-react';
 import ClientPicker from '@/components/ui/ClientPicker';
 import Modal from '@/components/ui/Modal';
 import FormField, { inputClassName } from '@/components/ui/FormField';
@@ -10,9 +10,14 @@ import TokenPicker from '@/components/workstations/TokenPicker';
 import { createWorkstationOperation, updateWorkstationOperation } from '@/lib/api/workstationOperations';
 import { fetchClients } from '@/lib/api/clients';
 import { fetchEquipmentModels } from '@/lib/api/equipmentModels';
+import { fetchTokensByClient, updateTokenStatus, updateTokenAddress } from '@/lib/api/tokens';
+import { fetchCashRegistersByClient, updateCashRegisterStatus } from '@/lib/api/cashRegisters';
+import { createTokenHistoryEntry } from '@/lib/api/tokenHistory';
 import type {
+  CashRegister,
   Client,
   EquipmentModel,
+  Token,
   WorkstationOperation,
   WorkstationOperationInput,
   WorkstationOperationType,
@@ -56,6 +61,10 @@ export default function WorkstationOperationFormModal({
   const [clientsLoading, setClientsLoading] = useState(true);
   const [models, setModels] = useState<EquipmentModel[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
+  const [clientTokens, setClientTokens] = useState<Token[]>([]);
+  const [clientCashRegisters, setClientCashRegisters] = useState<CashRegister[]>([]);
+  const [selectedCashRegisterId, setSelectedCashRegisterId] = useState('');
+  const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -82,6 +91,30 @@ export default function WorkstationOperationFormModal({
     loadClients();
   }, [loadClients]);
 
+  const loadClientData = useCallback(async () => {
+    if (!values.client_id) {
+      setClientTokens([]);
+      setClientCashRegisters([]);
+      return;
+    }
+    try {
+      const tokens = await fetchTokensByClient(values.client_id, []);
+      setClientTokens(tokens);
+    } catch {
+      setClientTokens([]);
+    }
+    try {
+      const registers = await fetchCashRegistersByClient(values.client_id);
+      setClientCashRegisters(registers);
+    } catch {
+      setClientCashRegisters([]);
+    }
+  }, [values.client_id]);
+
+  useEffect(() => {
+    loadClientData();
+  }, [loadClientData]);
+
   const updateField = (key: keyof WorkstationOperationInput, value: string | boolean | null) => {
     setValues((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: undefined }));
@@ -91,8 +124,36 @@ export default function WorkstationOperationFormModal({
   const needsAddress = operationType === 'registration' || operationType === 'address_change';
   const needsNotes = operationType === 'deregistration' || operationType === 'other';
 
+  const selectedCashRegister = clientCashRegisters.find((r) => r.id === selectedCashRegisterId);
+
+  const isTokenBlocked =
+    isRegistration &&
+    !values.is_cloud &&
+    selectedToken !== null &&
+    (selectedToken.status === 'зарегистрирован' ||
+      selectedToken.status === 'блокировка' ||
+      selectedToken.status === 'снят с регистрации');
+
+  const isCashRegisterBlocked =
+    isRegistration &&
+    values.is_cloud &&
+    selectedCashRegister !== undefined &&
+    selectedCashRegister !== null &&
+    (selectedCashRegister.register_status === 'зарегистрирована облачная' ||
+      selectedCashRegister.register_status === 'зарегистрирована токен');
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+
+    if (isTokenBlocked) {
+      setSubmitError('Невозможно произвести регистрацию — токен уже зарегистрирован');
+      return;
+    }
+    if (isCashRegisterBlocked) {
+      setSubmitError('Невозможно произвести регистрацию — касса уже зарегистрирована');
+      return;
+    }
+
     const payload: WorkstationOperationInput = {
       workstation_id: null,
       operation_type: operationType,
@@ -112,6 +173,8 @@ export default function WorkstationOperationFormModal({
     if (needsAddress && !payload.address) nextErrors.address = 'Укажите адрес';
     if (isRegistration && !payload.is_cloud && !payload.token_number)
       nextErrors.token_number = 'Выберите токен или отметьте «Облачная»';
+    if (isRegistration && payload.is_cloud && !selectedCashRegisterId)
+      nextErrors.token_number = 'Выберите облачную кассу';
     if (needsNotes && !payload.notes) nextErrors.notes = 'Укажите описание';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -123,6 +186,40 @@ export default function WorkstationOperationFormModal({
         await updateWorkstationOperation(operation.id, payload);
       } else {
         await createWorkstationOperation(payload);
+      }
+
+      if (isRegistration && selectedToken) {
+        await updateTokenStatus(selectedToken.id, 'зарегистрирован');
+        await createTokenHistoryEntry({
+          token_id: selectedToken.id,
+          action: 'регистрация',
+          action_date: payload.operation_date,
+          details: payload.is_cloud ? 'Облачная регистрация' : 'Регистрация токена',
+          address: payload.address,
+        });
+      }
+      if (operationType === 'deregistration' && selectedToken) {
+        await updateTokenStatus(selectedToken.id, 'снят с регистрации');
+        await createTokenHistoryEntry({
+          token_id: selectedToken.id,
+          action: 'снятие',
+          action_date: payload.operation_date,
+          details: payload.notes,
+          address: '',
+        });
+      }
+      if (operationType === 'address_change' && selectedToken) {
+        await updateTokenAddress(selectedToken.id, payload.address);
+        await createTokenHistoryEntry({
+          token_id: selectedToken.id,
+          action: 'изменение адреса',
+          action_date: payload.operation_date,
+          details: payload.notes,
+          address: payload.address,
+        });
+      }
+      if (isRegistration && values.is_cloud && selectedCashRegister) {
+        await updateCashRegisterStatus(selectedCashRegister.id, 'зарегистрирована облачная');
       }
       onSaved();
       onClose();
@@ -228,14 +325,25 @@ ${tableRows}
           />
         </FormField>
 
-        {isRegistration && (
+        {(isRegistration || operationType === 'deregistration' || operationType === 'address_change') && (
           <FormField label="Клиент" htmlFor="ws-op-client" error={errors.client_id} hint={clientsLoading ? 'Загрузка клиентов...' : undefined}>
             <div className="flex items-stretch gap-2">
               <ClientPicker
                 id="ws-op-client"
                 clients={clients}
                 value={values.client_id}
-                onChange={(clientId) => updateField('client_id', clientId)}
+                onChange={(clientId) => {
+                  updateField('client_id', clientId);
+                  setSelectedToken(null);
+                  setSelectedCashRegisterId('');
+                  setValues((prev) => ({
+                    ...prev,
+                    token_number: '',
+                    pc_model: '',
+                    pc_software_version: '',
+                    address: '',
+                  }));
+                }}
                 disabled={clientsLoading}
               />
               <button
@@ -289,7 +397,12 @@ ${tableRows}
                   checked={values.is_cloud}
                   onChange={(event) => {
                     updateField('is_cloud', event.target.checked);
-                    if (event.target.checked) updateField('token_number', '');
+                    if (event.target.checked) {
+                      updateField('token_number', '');
+                      setSelectedToken(null);
+                    } else {
+                      setSelectedCashRegisterId('');
+                    }
                   }}
                   className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
                 />
@@ -352,6 +465,77 @@ ${tableRows}
           </>
         )}
 
+        {isRegistration && values.is_cloud && (
+          <FormField
+            label="Облачная касса"
+            htmlFor="ws-op-cloud-register"
+            error={errors.token_number}
+            hint={clientCashRegisters.length === 0 ? 'Нет касс у выбранного клиента' : undefined}
+            className="sm:col-span-2"
+          >
+            <select
+              id="ws-op-cloud-register"
+              className={inputClassName}
+              value={selectedCashRegisterId}
+              onChange={(event) => {
+                setSelectedCashRegisterId(event.target.value);
+                const reg = clientCashRegisters.find((r) => r.id === event.target.value);
+                if (reg) {
+                  setValues((prev) => ({
+                    ...prev,
+                    pc_model: reg.model,
+                    pc_software_version: reg.software_version,
+                    address: reg.installation_address,
+                  }));
+                }
+              }}
+            >
+              <option value="">
+                {clientCashRegisters.length === 0 ? 'Нет доступных касс' : 'Выберите кассу'}
+              </option>
+              {clientCashRegisters.map((reg) => (
+                <option key={reg.id} value={reg.id}>
+                  {reg.model} — {reg.serial_number}
+                  {reg.register_status ? ` (${reg.register_status})` : ''}
+                </option>
+              ))}
+            </select>
+          </FormField>
+        )}
+
+        {isTokenBlocked && (
+          <div className="flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 sm:col-span-2">
+            <TriangleAlert className="h-4 w-4 shrink-0" />
+            Невозможно произвести регистрацию — токен зарегистрирован
+          </div>
+        )}
+
+        {isCashRegisterBlocked && (
+          <div className="flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 sm:col-span-2">
+            <TriangleAlert className="h-4 w-4 shrink-0" />
+            Невозможно произвести регистрацию — касса уже зарегистрирована
+          </div>
+        )}
+
+        {(operationType === 'deregistration' || operationType === 'address_change') && (
+          <FormField
+            label="Токен"
+            htmlFor="ws-op-token-action"
+            error={errors.token_number}
+            hint="Токены выбранного клиента"
+          >
+            <button
+              id="ws-op-token-action"
+              type="button"
+              onClick={() => values.client_id && setTokenPickerOpen(true)}
+              disabled={!values.client_id}
+              className={`${inputClassName} text-left ${values.token_number ? 'text-slate-900' : 'text-slate-400'} disabled:cursor-not-allowed disabled:opacity-50`}
+            >
+              {values.token_number || (values.client_id ? 'Выберите токен' : 'Сначала выберите клиента')}
+            </button>
+          </FormField>
+        )}
+
         {needsAddress && (
           <FormField label="Адрес" htmlFor="ws-op-address" error={errors.address} className="sm:col-span-2">
             <input
@@ -393,7 +577,19 @@ ${tableRows}
           currentTokenNumber={values.token_number}
           clientId={values.client_id}
           onClose={() => setTokenPickerOpen(false)}
-          onSelect={(tokenNumber) => updateField('token_number', tokenNumber)}
+          onSelect={(tokenNumber) => {
+            updateField('token_number', tokenNumber);
+            const token = clientTokens.find((t) => t.number === tokenNumber);
+            if (token) {
+              setSelectedToken(token);
+              setValues((prev) => ({
+                ...prev,
+                pc_model: token.pc_model || prev.pc_model,
+                pc_software_version: token.pc_software_version || prev.pc_software_version,
+                address: token.pc_installation_address || prev.address,
+              }));
+            }
+          }}
         />
       )}
 
@@ -402,7 +598,10 @@ ${tableRows}
           operatorType={tokenFormOpen}
           token={null}
           onClose={() => setTokenFormOpen(null)}
-          onSaved={() => setTokenFormOpen(null)}
+          onSaved={() => {
+            setTokenFormOpen(null);
+            loadClientData();
+          }}
         />
       )}
 

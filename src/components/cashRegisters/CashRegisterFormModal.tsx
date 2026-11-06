@@ -23,6 +23,7 @@ export default function CashRegisterFormModal({ cashRegister, onClose, onSaved }
     software_version: cashRegister?.software_version ?? '',
     client_id: cashRegister?.client_id ?? '',
     installation_address: cashRegister?.installation_address ?? '',
+    register_status: cashRegister?.register_status ?? '',
   }));
   const [models, setModels] = useState<EquipmentModel[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
@@ -76,6 +77,7 @@ export default function CashRegisterFormModal({ cashRegister, onClose, onSaved }
       software_version: values.software_version.trim(),
       client_id: values.client_id,
       installation_address: values.installation_address.trim(),
+      register_status: values.register_status,
     };
 
     const nextErrors: FormErrors = {};

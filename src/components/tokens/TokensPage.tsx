@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { KeyRound, Eye, Pencil, Plus, Search, Trash2, TriangleAlert } from 'lucide-react';
+import { KeyRound, Eye, Pencil, Plus, Search, Trash2, TriangleAlert, History } from 'lucide-react';
 import TokenFormModal from '@/components/tokens/TokenFormModal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Modal from '@/components/ui/Modal';
 import { deleteToken, fetchTokens } from '@/lib/api/tokens';
-import type { Token, TokenOperatorType } from '@/types/directory';
+import { fetchTokenHistory } from '@/lib/api/tokenHistory';
+import type { Token, TokenHistoryEntry, TokenOperatorType } from '@/types/directory';
 
 type EditorState = { mode: 'create' } | { mode: 'edit'; token: Token } | { mode: 'view'; token: Token } | null;
 
@@ -35,6 +36,7 @@ export default function TokensPage({ operatorType }: TokensPageProps) {
   const [pendingDelete, setPendingDelete] = useState<Token | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [historyToken, setHistoryToken] = useState<Token | null>(null);
 
   const loadItems = useCallback(async () => {
     setLoading(true);
@@ -171,6 +173,14 @@ export default function TokensPage({ operatorType }: TokensPageProps) {
                   <div className="flex items-center justify-end gap-1">
                     <button
                       type="button"
+                      onClick={() => setHistoryToken(item)}
+                      aria-label={`История ${item.number}`}
+                      className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-blue-50 hover:text-blue-700"
+                    >
+                      <History className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setViewer(item)}
                       aria-label={`Просмотр ${item.number}`}
                       className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900"
@@ -249,6 +259,10 @@ export default function TokensPage({ operatorType }: TokensPageProps) {
         <TokenViewModal token={viewer} onClose={() => setViewer(null)} />
       )}
 
+      {historyToken && (
+        <TokenHistoryModal token={historyToken} onClose={() => setHistoryToken(null)} />
+      )}
+
       {pendingDelete && (
         <ConfirmDialog
           title="Удалить токен?"
@@ -308,6 +322,85 @@ function TokenViewModal({ token, onClose }: TokenViewModalProps) {
             <span className="text-sm text-slate-900">{row.value}</span>
           </div>
         ))}
+      </div>
+    </Modal>
+  );
+}
+
+interface TokenHistoryModalProps {
+  token: Token;
+  onClose: () => void;
+}
+
+function TokenHistoryModal({ token, onClose }: TokenHistoryModalProps) {
+  const [entries, setEntries] = useState<TokenHistoryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+
+  useEffect(() => {
+    fetchTokenHistory(token.id)
+      .then(setEntries)
+      .catch(() => setLoadError('Не удалось загрузить историю.'))
+      .finally(() => setLoading(false));
+  }, [token.id]);
+
+  const ACTION_LABELS: Record<string, string> = {
+    'регистрация': 'Регистрация',
+    'снятие': 'Снятие с регистрации',
+    'блокировка': 'Блокировка',
+    'изменение адреса': 'Изменение адреса установки',
+  };
+
+  return (
+    <Modal
+      maxWidth="max-w-2xl"
+      title={`История токена — ${token.number}`}
+      onClose={onClose}
+      footer={
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+        >
+          Закрыть
+        </button>
+      }
+    >
+      <div className="flex flex-col gap-3 pb-16">
+        {loading ? (
+          <p className="py-8 text-center text-sm text-slate-500">Загрузка...</p>
+        ) : loadError ? (
+          <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{loadError}</p>
+        ) : entries.length === 0 ? (
+          <p className="py-8 text-center text-sm text-slate-500">История пуста.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Дата</th>
+                  <th className="px-4 py-3">Действие</th>
+                  <th className="px-4 py-3">Адрес</th>
+                  <th className="px-4 py-3">Детали</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {entries.map((entry) => (
+                  <tr key={entry.id} className="transition-colors hover:bg-slate-50">
+                    <td className="whitespace-nowrap px-4 py-3 tabular-nums text-slate-900">
+                      {new Date(entry.action_date).toLocaleDateString('ru-RU')}
+                    </td>
+                    <td className="px-4 py-3 font-medium text-slate-900">
+                      {ACTION_LABELS[entry.action] ?? entry.action}
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">{entry.address || '—'}</td>
+                    <td className="px-4 py-3 text-slate-600">{entry.details || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </Modal>
   );

@@ -68,3 +68,19 @@ export async function deleteToken(id: string): Promise<void> {
   const { error } = await supabase.from('tokens').delete().eq('id', id);
   if (error) throw error;
 }
+
+export async function updateTokenStatus(id: string, status: string): Promise<void> {
+  const { error } = await supabase
+    .from('tokens')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function updateTokenAddress(id: string, address: string): Promise<void> {
+  const { error } = await supabase
+    .from('tokens')
+    .update({ pc_installation_address: address, updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw error;
+}
