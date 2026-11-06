@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pencil, Plus, Search, Trash2, TriangleAlert } from 'lucide-react';
+import { Eye, Pencil, Plus, Search, Trash2, TriangleAlert } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import WorkstationOperationFormModal from '@/components/workstationOperations/WorkstationOperationFormModal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import Modal from '@/components/ui/Modal';
 import { deleteWorkstationOperation, fetchWorkstationOperations } from '@/lib/api/workstationOperations';
 import type { WorkstationOperation, WorkstationOperationType } from '@/types/directory';
 
@@ -31,6 +32,7 @@ export default function WorkstationOperationsPage({
   const [loadError, setLoadError] = useState('');
   const [search, setSearch] = useState('');
   const [editor, setEditor] = useState<EditorState>(null);
+  const [viewer, setViewer] = useState<WorkstationOperation | null>(null);
   const [pendingDelete, setPendingDelete] = useState<WorkstationOperation | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
@@ -59,7 +61,8 @@ export default function WorkstationOperationsPage({
         (item.client?.name ?? '').toLowerCase().includes(query) ||
         item.address.toLowerCase().includes(query) ||
         item.token_number.toLowerCase().includes(query) ||
-        item.notes.toLowerCase().includes(query),
+        item.notes.toLowerCase().includes(query) ||
+        item.pc_model.toLowerCase().includes(query),
     );
   }, [items, search]);
 
@@ -124,6 +127,7 @@ export default function WorkstationOperationsPage({
             <tr>
               <th className="px-5 py-3">Дата</th>
               <th className="px-5 py-3">Клиент</th>
+              <th className="px-5 py-3">Модель ПК</th>
               <th className="px-5 py-3">Тип</th>
               <th className="px-5 py-3">Токен</th>
               <th className="px-5 py-3">Адрес</th>
@@ -139,6 +143,7 @@ export default function WorkstationOperationsPage({
                   {new Date(item.operation_date).toLocaleDateString('ru-RU')}
                 </td>
                 <td className="px-5 py-4 text-slate-700">{item.client?.name ?? '—'}</td>
+                <td className="px-5 py-4 text-slate-700">{item.pc_model || '—'}</td>
                 <td className="px-5 py-4 text-slate-700">
                   {item.is_cloud ? 'Облачная' : item.token_number ? 'Токен' : '—'}
                 </td>
@@ -146,6 +151,14 @@ export default function WorkstationOperationsPage({
                 <td className="px-5 py-4 text-slate-700">{item.address || '—'}</td>
                 <td className="px-5 py-4">
                   <div className="flex items-center justify-end gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setViewer(item)}
+                      aria-label="Просмотр"
+                      className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => setEditor({ mode: 'edit', operation: item })}
@@ -197,9 +210,9 @@ export default function WorkstationOperationsPage({
           type="search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Поиск по клиенту, токену или адресу"
+          placeholder="Поиск по клиенту, токену, модели или адресу"
           aria-label="Поиск"
-          className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-blue-500 focus:outline focus:ring-2 focus:ring-blue-500/20"
         />
       </div>
 
@@ -214,6 +227,10 @@ export default function WorkstationOperationsPage({
         />
       )}
 
+      {viewer && (
+        <OperationViewModal operation={viewer} onClose={() => setViewer(null)} />
+      )}
+
       {pendingDelete && (
         <ConfirmDialog
           title="Удалить запись?"
@@ -226,5 +243,49 @@ export default function WorkstationOperationsPage({
         />
       )}
     </section>
+  );
+}
+
+interface OperationViewModalProps {
+  operation: WorkstationOperation;
+  onClose: () => void;
+}
+
+function OperationViewModal({ operation, onClose }: OperationViewModalProps) {
+  const rows: { label: string; value: string }[] = [
+    { label: 'Дата', value: new Date(operation.operation_date).toLocaleDateString('ru-RU') },
+    { label: 'Клиент', value: operation.client?.name ?? '—' },
+    { label: 'Модель ПК', value: operation.pc_model || '—' },
+    { label: 'Версия ПО', value: operation.pc_software_version || '—' },
+    { label: 'Тип регистрации', value: operation.is_cloud ? 'Облачная' : operation.token_number ? 'Токен' : '—' },
+    { label: 'Токен', value: operation.token_number || '—' },
+    { label: 'Адрес', value: operation.address || '—' },
+    { label: 'Примечание', value: operation.notes || '—' },
+  ];
+
+  return (
+    <Modal
+      maxWidth="max-w-2xl"
+      title="Просмотр записи"
+      onClose={onClose}
+      footer={
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+        >
+          Закрыть
+        </button>
+      }
+    >
+      <div className="flex flex-col gap-3 pb-16">
+        {rows.map((row) => (
+          <div key={row.label} className="flex flex-col gap-0.5 border-b border-slate-100 pb-2">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">{row.label}</span>
+            <span className="text-sm text-slate-900">{row.value}</span>
+          </div>
+        ))}
+      </div>
+    </Modal>
   );
 }
