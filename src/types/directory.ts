@@ -221,3 +221,26 @@ export interface PriceListItem {
 }
 
 export type PriceListItemInput = Omit<PriceListItem, 'id'>;
+
+export interface CloudCashRegister {
+  id: string;
+  client_id: string | null;
+  pc_model: string;
+  pc_software_version: string;
+  equipment_model: string;
+  equipment_serial_number: string;
+  equipment_name: string;
+  equipment_status: string;
+  installation_name: string;
+  pc_installation_address: string;
+  working_hours: string;
+  gln: string;
+  to_type: string;
+  to_name: string;
+  contract_number: string;
+  register_status: string;
+  itp_price: number;
+  client: { name: string } | null;
+}
+
+export type CloudCashRegisterInput = Omit<CloudCashRegister, 'id' | 'client'>;

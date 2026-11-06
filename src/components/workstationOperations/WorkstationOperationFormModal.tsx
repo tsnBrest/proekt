@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { FileText, KeyRound, Plus, TriangleAlert } from 'lucide-react';
+import { FileText, KeyRound, Plus, TriangleAlert, Cloud } from 'lucide-react';
 import ClientPicker from '@/components/ui/ClientPicker';
 import Modal from '@/components/ui/Modal';
 import FormField, { inputClassName } from '@/components/ui/FormField';
 import ModelPicker from '@/components/cashRegisters/ModelPicker';
 import TokenFormModal from '@/components/tokens/TokenFormModal';
+import CloudCashRegisterFormModal from '@/components/cloudCashRegisters/CloudCashRegisterFormModal';
 import ClientFormModal from '@/components/clients/ClientFormModal';
 import TokenPicker from '@/components/workstations/TokenPicker';
 import { createWorkstationOperation, updateWorkstationOperation } from '@/lib/api/workstationOperations';
@@ -92,6 +93,7 @@ export default function WorkstationOperationFormModal({
   const [tokenPickerSlot, setTokenPickerSlot] = useState<1 | 2 | null>(null);
   const [clientFormOpen, setClientFormOpen] = useState(false);
   const [tokenFormOpen, setTokenFormOpen] = useState<null | 'ikassa' | 'cpi'>(null);
+  const [cloudCashRegisterFormOpen, setCloudCashRegisterFormOpen] = useState(false);
 
   const isRegistration = operationType === 'registration';
   const needsAddress = operationType === 'registration' || operationType === 'address_change';
@@ -421,7 +423,7 @@ ${tableRows}
 
             {slotNum === 1 && (
               <FormField label="Новый токен" htmlFor="ws-op-new-token" hint="Создать и привязать к клиенту">
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => setTokenFormOpen('ikassa')}
@@ -439,6 +441,15 @@ ${tableRows}
                   >
                     <KeyRound className="h-4 w-4" />
                     ЦПИ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCloudCashRegisterFormOpen(true)}
+                    disabled={!clientId}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Cloud className="h-4 w-4" />
+                    DusicCloud
                   </button>
                 </div>
               </FormField>
@@ -661,6 +672,17 @@ ${tableRows}
           onClose={() => setTokenFormOpen(null)}
           onSaved={() => {
             setTokenFormOpen(null);
+            loadClientData();
+          }}
+        />
+      )}
+
+      {cloudCashRegisterFormOpen && (
+        <CloudCashRegisterFormModal
+          cashRegister={null}
+          onClose={() => setCloudCashRegisterFormOpen(false)}
+          onSaved={() => {
+            setCloudCashRegisterFormOpen(false);
             loadClientData();
           }}
         />

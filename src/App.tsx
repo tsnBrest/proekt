@@ -24,6 +24,7 @@ import TradeObjectTypesPage from '@/components/tradeObjectTypes/TradeObjectTypes
 import TokenBasesPage from '@/components/tokenBases/TokenBasesPage';
 import DocumentTemplatesPage from '@/components/documentTemplates/DocumentTemplatesPage';
 import PriceListPage from '@/components/priceList/PriceListPage';
+import CloudCashRegistersPage from '@/components/cloudCashRegisters/CloudCashRegistersPage';
 import { CollapsedDock } from '@/components/ui/Modal';
 import type { LucideIcon } from 'lucide-react';
 import type { CashRegisterOperationType, WorkstationOperationType } from '@/types/directory';
@@ -48,7 +49,8 @@ type SettingsSubtab =
   | 'models'
   | 'tradeObjectTypes'
   | 'templates'
-  | 'priceList';
+  | 'priceList'
+  | 'cloudCashRegisters';
 
 interface Subtab {
   id: string;
@@ -85,6 +87,7 @@ const SETTINGS_SUBTABS: Subtab[] = [
   { id: 'tradeObjectTypes', label: 'Типы торговых объектов' },
   { id: 'templates', label: 'Шаблоны документов' },
   { id: 'priceList', label: 'Прейскурант цен' },
+  { id: 'cloudCashRegisters', label: 'Облачные кассы' },
 ];
 
 const CASH_REGISTER_SUBTABS: Subtab[] = [
@@ -200,6 +203,8 @@ function App() {
         return <DocumentTemplatesPage />;
       case 'priceList':
         return <PriceListPage />;
+      case 'cloudCashRegisters':
+        return <CloudCashRegistersPage />;
     }
   };
 
