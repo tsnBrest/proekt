@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { FileText, Search, Users } from 'lucide-react';
+import { FileText, Plus, Search, Users } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import FormField, { inputClassName } from '@/components/ui/FormField';
 import ModelPicker from '@/components/cashRegisters/ModelPicker';
+import ContractFormModal from '@/components/contracts/ContractFormModal';
 import { createToken, updateToken, DUPLICATE_ERROR_CODE } from '@/lib/api/tokens';
 import { fetchEquipmentModels } from '@/lib/api/equipmentModels';
 import { fetchTradeObjectTypes } from '@/lib/api/tradeObjectTypes';
@@ -431,13 +432,20 @@ function ContractPickerModal({ currentContractNumber, onClose, onSelect }: Contr
   const [loadError, setLoadError] = useState('');
   const [search, setSearch] = useState('');
   const [selectedNumber, setSelectedNumber] = useState(currentContractNumber);
+  const [addFormOpen, setAddFormOpen] = useState(false);
 
-  useEffect(() => {
+  const loadContracts = useCallback(() => {
+    setLoading(true);
+    setLoadError('');
     fetchContracts()
       .then(setItems)
       .catch(() => setLoadError('Не удалось загрузить договоры.'))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadContracts();
+  }, [loadContracts]);
 
   const visibleItems = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -456,6 +464,14 @@ function ContractPickerModal({ currentContractNumber, onClose, onSelect }: Contr
       onClose={onClose}
       footer={
         <>
+          <button
+            type="button"
+            onClick={() => setAddFormOpen(true)}
+            className="mr-auto inline-flex items-center gap-1.5 rounded-lg bg-slate-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800"
+          >
+            <Plus className="h-4 w-4" />
+            Добавить договор
+          </button>
           <button
             type="button"
             onClick={onClose}
@@ -522,6 +538,17 @@ function ContractPickerModal({ currentContractNumber, onClose, onSelect }: Contr
           </ul>
         )}
       </div>
+
+      {addFormOpen && (
+        <ContractFormModal
+          contract={null}
+          onClose={() => setAddFormOpen(false)}
+          onSaved={() => {
+            setAddFormOpen(false);
+            loadContracts();
+          }}
+        />
+      )}
     </Modal>
   );
 }

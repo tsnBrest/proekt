@@ -4,7 +4,7 @@ import ClientPicker from '@/components/ui/ClientPicker';
 import Modal from '@/components/ui/Modal';
 import FormField, { inputClassName } from '@/components/ui/FormField';
 import ClientFormModal from '@/components/clients/ClientFormModal';
-import { createContract, updateContract } from '@/lib/api/contracts';
+import { createContract, updateContract, suggestNextContractNumber } from '@/lib/api/contracts';
 import { fetchClients } from '@/lib/api/clients';
 import type { Client, Contract, ContractInput } from '@/types/directory';
 
@@ -27,6 +27,7 @@ export default function ContractFormModal({ contract, onClose, onSaved }: Contra
   const [submitError, setSubmitError] = useState('');
   const [saving, setSaving] = useState(false);
   const [clientFormOpen, setClientFormOpen] = useState(false);
+  const [numberHint, setNumberHint] = useState('');
 
   const loadClients = useCallback(async () => {
     setClientsLoading(true);
@@ -41,7 +42,12 @@ export default function ContractFormModal({ contract, onClose, onSaved }: Contra
 
   useEffect(() => {
     loadClients();
-  }, [loadClients]);
+    if (!contract) {
+      suggestNextContractNumber()
+        .then((num) => setNumberHint(num))
+        .catch(() => undefined);
+    }
+  }, [loadClients, contract]);
 
   const updateField = (key: keyof ContractInput, value: string | null) => {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -108,13 +114,13 @@ export default function ContractFormModal({ contract, onClose, onSaved }: Contra
         onSubmit={handleSubmit}
         className="grid grid-cols-1 gap-x-5 gap-y-5 pb-16 sm:grid-cols-2"
       >
-        <FormField label="№ договора" htmlFor="contract-number" error={errors.number}>
+        <FormField label="№ договора" htmlFor="contract-number" error={errors.number} hint={numberHint ? `Следующий по порядку: ${numberHint}` : undefined}>
           <input
             id="contract-number"
             className={inputClassName}
             value={values.number}
             onChange={(event) => updateField('number', event.target.value)}
-            placeholder="Например, 123/2024"
+            placeholder={numberHint || 'Например, 123/2024'}
             autoFocus
           />
         </FormField>
