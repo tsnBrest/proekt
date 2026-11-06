@@ -36,6 +36,7 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
   const [selectedCloudId, setSelectedCloudId] = useState('');
   const [allTokens, setAllTokens] = useState<Token[]>([]);
   const [tokensLoading, setTokensLoading] = useState(false);
+  const [cloudError, setCloudError] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -67,17 +68,24 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
   }, []);
 
   useEffect(() => {
-    setSelectedCloudId('');
-    if (!values.client_id) {
+    if (!values.is_cloud || !values.client_id) {
       setCloudRegisters([]);
+      setSelectedCloudId('');
       return;
     }
     setCloudLoading(true);
+    setCloudError('');
     fetchCloudCashRegistersByClient(values.client_id)
-      .then(setCloudRegisters)
-      .catch(() => setCloudRegisters([]))
+      .then((data) => {
+        setCloudRegisters(data);
+        setSelectedCloudId('');
+      })
+      .catch(() => {
+        setCloudRegisters([]);
+        setCloudError('Не удалось загрузить облачные кассы клиента.');
+      })
       .finally(() => setCloudLoading(false));
-  }, [values.client_id]);
+  }, [values.client_id, values.is_cloud]);
 
   const updateField = (key: keyof WorkstationInput, value: string) => {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -166,13 +174,15 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
           error={errors.model}
           hint={
             values.is_cloud
-              ? !values.client_id
-                ? 'Сначала выберите клиента'
-                : cloudLoading
-                  ? 'Загрузка облачных касс...'
-                  : cloudRegisters.length === 0
-                    ? 'У клиента нет облачных касс'
-                    : 'Выбор из облачных касс клиента'
+              ? cloudError
+                ? cloudError
+                : !values.client_id
+                  ? 'Сначала выберите клиента'
+                  : cloudLoading
+                    ? 'Загрузка облачных касс...'
+                    : cloudRegisters.length === 0
+                      ? 'У клиента нет облачных касс'
+                      : 'Выбор из облачных касс клиента'
               : 'Введите модель вручную'
           }
         >
