@@ -61,7 +61,7 @@ export default function TokenPicker({
             ? fetchCloudCashRegistersByClient(clientId)
             : Promise.resolve([] as CloudCashRegister[]),
       ]);
-      setTokens(tokenList);
+      setTokens(tokenList.filter((t) => t.status !== 'снят с регистрации'));
       if (!externalCloudRegisters) setInternalCloudRegisters(cloudList);
     } catch {
       setLoadError('Не удалось загрузить список.');
