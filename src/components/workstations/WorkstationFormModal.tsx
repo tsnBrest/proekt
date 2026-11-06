@@ -8,7 +8,8 @@ import ClientFormModal from '@/components/clients/ClientFormModal';
 import { createWorkstation, updateWorkstation } from '@/lib/api/workstations';
 import { fetchClients } from '@/lib/api/clients';
 import { fetchCloudCashRegistersByClient } from '@/lib/api/cloudCashRegisters';
-import type { Client, CloudCashRegister, Workstation, WorkstationInput } from '@/types/directory';
+import { fetchTokens } from '@/lib/api/tokens';
+import type { Client, CloudCashRegister, Token, Workstation, WorkstationInput } from '@/types/directory';
 
 type FormErrors = Partial<Record<keyof WorkstationInput, string>>;
 
@@ -32,6 +33,8 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
   const [clientsError, setClientsError] = useState('');
   const [cloudRegisters, setCloudRegisters] = useState<CloudCashRegister[]>([]);
   const [cloudLoading, setCloudLoading] = useState(false);
+  const [allTokens, setAllTokens] = useState<Token[]>([]);
+  const [tokensLoading, setTokensLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -53,6 +56,14 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
   useEffect(() => {
     loadClients();
   }, [loadClients]);
+
+  useEffect(() => {
+    setTokensLoading(true);
+    fetchTokens()
+      .then(setAllTokens)
+      .catch(() => setAllTokens([]))
+      .finally(() => setTokensLoading(false));
+  }, []);
 
   useEffect(() => {
     if (!values.client_id) {
@@ -171,7 +182,10 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
               onChange={(event) => {
                 const selected = cloudRegisters.find((r) => r.pc_model === event.target.value);
                 updateField('model', event.target.value);
-                if (selected) updateField('software_version', selected.pc_software_version || '');
+                if (selected) {
+                  updateField('software_version', selected.pc_software_version || '');
+                  updateField('installation_address', selected.pc_installation_address || '');
+                }
               }}
               disabled={cloudLoading || !values.client_id}
             >
@@ -271,8 +285,15 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
         <TokenPicker
           assignedTokenNumbers={assignedTokenNumbers}
           currentTokenNumber={values.token_number}
+          clientId={values.client_id || null}
           onClose={() => setTokenPickerOpen(false)}
-          onSelect={(tokenNumber) => updateField('token_number', tokenNumber)}
+          onSelect={(tokenNumber) => {
+            updateField('token_number', tokenNumber);
+            const token = allTokens.find((t) => t.number === tokenNumber);
+            if (token) {
+              updateField('installation_address', token.pc_installation_address || '');
+            }
+          }}
         />
       )}
 
