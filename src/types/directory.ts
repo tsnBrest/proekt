@@ -51,6 +51,7 @@ export interface Workstation {
   software_version: string;
   client_id: string | null;
   installation_address: string;
+  is_cloud: boolean;
   client: { name: string } | null;
 }
 

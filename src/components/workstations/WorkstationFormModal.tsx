@@ -25,6 +25,7 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
     software_version: workstation?.software_version ?? '',
     client_id: workstation?.client_id ?? '',
     installation_address: workstation?.installation_address ?? '',
+    is_cloud: workstation?.is_cloud ?? false,
   }));
   const [clients, setClients] = useState<Client[]>([]);
   const [clientsLoading, setClientsLoading] = useState(true);
@@ -78,6 +79,7 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
       software_version: values.software_version.trim(),
       client_id: values.client_id || null,
       installation_address: values.installation_address.trim(),
+      is_cloud: values.is_cloud,
     };
 
     const nextErrors: FormErrors = {};
@@ -150,33 +152,61 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
           htmlFor="workstation-model"
           error={errors.model}
           hint={
-            !values.client_id
-              ? 'Сначала выберите клиента'
-              : cloudLoading
-                ? 'Загрузка облачных касс...'
-                : cloudRegisters.length === 0
-                  ? 'У клиента нет облачных касс'
-                  : 'Выбор из облачных касс клиента'
+            values.is_cloud
+              ? !values.client_id
+                ? 'Сначала выберите клиента'
+                : cloudLoading
+                  ? 'Загрузка облачных касс...'
+                  : cloudRegisters.length === 0
+                    ? 'У клиента нет облачных касс'
+                    : 'Выбор из облачных касс клиента'
+              : 'Введите модель вручную'
           }
         >
-          <select
-            id="workstation-model"
-            className={inputClassName}
-            value={values.model}
-            onChange={(event) => {
-              const selected = cloudRegisters.find((r) => r.pc_model === event.target.value);
-              updateField('model', event.target.value);
-              if (selected) updateField('software_version', selected.pc_software_version || '');
-            }}
-            disabled={cloudLoading || !values.client_id}
-          >
-            <option value="">{cloudLoading ? 'Загрузка...' : 'Выберите модель'}</option>
-            {cloudRegisters.map((reg) => (
-              <option key={reg.id} value={reg.pc_model}>
-                {reg.pc_model}
-              </option>
-            ))}
-          </select>
+          {values.is_cloud ? (
+            <select
+              id="workstation-model"
+              className={inputClassName}
+              value={values.model}
+              onChange={(event) => {
+                const selected = cloudRegisters.find((r) => r.pc_model === event.target.value);
+                updateField('model', event.target.value);
+                if (selected) updateField('software_version', selected.pc_software_version || '');
+              }}
+              disabled={cloudLoading || !values.client_id}
+            >
+              <option value="">{cloudLoading ? 'Загрузка...' : 'Выберите модель'}</option>
+              {cloudRegisters.map((reg) => (
+                <option key={reg.id} value={reg.pc_model}>
+                  {reg.pc_model}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              id="workstation-model"
+              className={inputClassName}
+              value={values.model}
+              onChange={(event) => updateField('model', event.target.value)}
+              placeholder="Например, ASUS ET-7102"
+            />
+          )}
+        </FormField>
+
+        <FormField label="Облачная касса" htmlFor="workstation-is-cloud" className="sm:col-span-2">
+          <label className="flex items-center gap-3">
+            <input
+              id="workstation-is-cloud"
+              type="checkbox"
+              checked={values.is_cloud}
+              onChange={(event) => {
+                setValues((prev) => ({ ...prev, is_cloud: event.target.checked, model: '', software_version: '' }));
+                setErrors((prev) => ({ ...prev, model: undefined }));
+              }}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
+            />
+            <span className="text-sm text-slate-700">Выбрать модель ПК из облачных касс клиента</span>
+          </label>
         </FormField>
 
         <FormField label="Версия ПК" htmlFor="workstation-software" hint="Подставляется из справочника моделей">

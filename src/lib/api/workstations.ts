@@ -4,7 +4,7 @@ import type { Workstation, WorkstationInput } from '@/types/directory';
 export async function fetchWorkstations(): Promise<Workstation[]> {
   const { data, error } = await supabase
     .from('workstations')
-    .select('id, token_number, model, software_version, client_id, installation_address, client:clients(name)')
+    .select('id, token_number, model, software_version, client_id, installation_address, is_cloud, client:clients(name)')
     .order('model');
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as Workstation[];
