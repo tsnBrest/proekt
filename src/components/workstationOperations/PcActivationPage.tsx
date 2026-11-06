@@ -145,7 +145,13 @@ export default function PcActivationPage() {
                 <td className="px-5 py-4 tabular-nums text-slate-700">{item.device_number || '—'}</td>
                 <td className="px-5 py-4 text-slate-500">{item.previous_status || '—'}</td>
                 <td className="px-5 py-4 text-slate-700">
-                  <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                      item.new_status === 'ОТКЛЮЧЕН'
+                        ? 'bg-red-50 text-red-600'
+                        : 'bg-blue-50 text-blue-700'
+                    }`}
+                  >
                     {item.new_status || '—'}
                   </span>
                 </td>

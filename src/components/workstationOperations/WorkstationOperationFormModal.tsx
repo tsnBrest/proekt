@@ -15,6 +15,7 @@ import { fetchTokensByClient, updateTokenStatus, updateTokenAddress } from '@/li
 import { fetchCashRegistersByClient, updateCashRegisterStatus } from '@/lib/api/cashRegisters';
 import { fetchCloudCashRegistersByClient } from '@/lib/api/cloudCashRegisters';
 import { createTokenHistoryEntry } from '@/lib/api/tokenHistory';
+import { createPcActivation } from '@/lib/api/pcActivations';
 import type {
   CashRegister,
   Client,
@@ -236,6 +237,7 @@ export default function WorkstationOperationFormModal({
       });
     }
     if (operationType === 'deregistration' && slot.selectedToken) {
+      const previousStatus = slot.selectedToken.status;
       await updateTokenStatus(slot.selectedToken.id, 'снят с регистрации');
       await createTokenHistoryEntry({
         token_id: slot.selectedToken.id,
@@ -243,6 +245,17 @@ export default function WorkstationOperationFormModal({
         action_date: operationDate,
         details: notes.trim(),
         address: '',
+      });
+      await createPcActivation({
+        activation_date: operationDate,
+        client_id: clientId,
+        device_kind: 'token',
+        device_id: slot.selectedToken.id,
+        device_number: slot.token_number.trim(),
+        previous_status: previousStatus,
+        new_status: 'ОТКЛЮЧЕН',
+        reg_number_skko: '',
+        notes: deregistrationReason === 'Прочие' ? deregistrationCustomText.trim() : deregistrationReason,
       });
     }
     if (operationType === 'address_change' && slot.selectedToken) {
