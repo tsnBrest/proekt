@@ -6,6 +6,7 @@ import {
   FileText,
   Monitor,
   Receipt,
+  Settings,
   Wrench,
 } from 'lucide-react';
 import ClientsPage from '@/components/clients/ClientsPage';
@@ -26,23 +27,25 @@ import type { LucideIcon } from 'lucide-react';
 import type { CashRegisterOperationType, WorkstationOperationType } from '@/types/directory';
 
 
-type TopTab = 'equipment' | 'reports' | 'directories';
+type TopTab = 'equipment' | 'reports' | 'directories' | 'settings';
 type EquipmentSubtab = 'workstations' | 'taximeters' | 'cashRegisters';
 type WorkstationSubtab = WorkstationOperationType;
 type CashRegisterSubtab = 'list' | CashRegisterOperationType;
 type DirectorySubtab =
   | 'clients'
-  | 'banks'
-  | 'cashRegisters'
   | 'servicedEquipment'
-  | 'pcEquipment'
-  | 'models'
   | 'contracts'
-  | 'tradeObjectTypes'
   | 'tokenBases'
-  | 'templates'
   | 'tokensIkassa'
   | 'tokensCpi';
+
+type SettingsSubtab =
+  | 'banks'
+  | 'cashRegisters'
+  | 'pcEquipment'
+  | 'models'
+  | 'tradeObjectTypes'
+  | 'templates';
 
 interface Subtab {
   id: string;
@@ -53,6 +56,7 @@ const TOP_TABS: { id: TopTab; label: string; icon: LucideIcon }[] = [
   { id: 'equipment', label: 'Оборудование', icon: Monitor },
   { id: 'reports', label: 'Отчеты', icon: FileText },
   { id: 'directories', label: 'Справочники', icon: ClipboardList },
+  { id: 'settings', label: 'Настройки', icon: Settings },
 ];
 
 const EQUIPMENT_SUBTABS: Subtab[] = [
@@ -63,17 +67,20 @@ const EQUIPMENT_SUBTABS: Subtab[] = [
 
 const DIRECTORY_SUBTABS: Subtab[] = [
   { id: 'clients', label: 'Справочник клиентов' },
-  { id: 'banks', label: 'Банки' },
-  { id: 'cashRegisters', label: 'Справочник касс' },
   { id: 'servicedEquipment', label: 'Обслуживаемое оборудование' },
-  { id: 'pcEquipment', label: 'Оборудование ПК' },
-  { id: 'models', label: 'Модели' },
   { id: 'contracts', label: 'Справочник договоров' },
-  { id: 'tradeObjectTypes', label: 'Типы торговых объектов' },
   { id: 'tokenBases', label: 'Токены база' },
-  { id: 'templates', label: 'Шаблоны документов' },
   { id: 'tokensIkassa', label: 'Токены iKassa' },
   { id: 'tokensCpi', label: 'Токены ЦПИ' },
+];
+
+const SETTINGS_SUBTABS: Subtab[] = [
+  { id: 'banks', label: 'Банки' },
+  { id: 'cashRegisters', label: 'Справочник касс' },
+  { id: 'pcEquipment', label: 'Оборудование ПК' },
+  { id: 'models', label: 'Модели' },
+  { id: 'tradeObjectTypes', label: 'Типы торговых объектов' },
+  { id: 'templates', label: 'Шаблоны документов' },
 ];
 
 const CASH_REGISTER_SUBTABS: Subtab[] = [
@@ -117,6 +124,7 @@ function App() {
   const [workstationSubtab, setWorkstationSubtab] = useState<WorkstationSubtab>('registration');
   const [cashRegisterSubtab, setCashRegisterSubtab] = useState<CashRegisterSubtab>('list');
   const [directorySubtab, setDirectorySubtab] = useState<DirectorySubtab>('clients');
+  const [settingsSubtab, setSettingsSubtab] = useState<SettingsSubtab>('banks');
 
   const renderCashRegisterContent = () => {
     if (cashRegisterSubtab === 'list') {
@@ -159,28 +167,33 @@ function App() {
     switch (directorySubtab) {
       case 'clients':
         return <ClientsPage />;
-      case 'banks':
-        return <BanksPage />;
-      case 'cashRegisters':
-        return <CashRegistersPage />;
       case 'servicedEquipment':
         return <ServicedEquipmentPage />;
-      case 'pcEquipment':
-        return <PcEquipmentPage />;
-      case 'models':
-        return <EquipmentModelsPage />;
       case 'contracts':
         return <ContractsPage />;
-      case 'tradeObjectTypes':
-        return <TradeObjectTypesPage />;
       case 'tokenBases':
         return <TokenBasesPage />;
-      case 'templates':
-        return <DocumentTemplatesPage />;
       case 'tokensIkassa':
         return <TokensPage operatorType="ikassa" />;
       case 'tokensCpi':
         return <TokensPage operatorType="cpi" />;
+    }
+  };
+
+  const renderSettingsContent = () => {
+    switch (settingsSubtab) {
+      case 'banks':
+        return <BanksPage />;
+      case 'cashRegisters':
+        return <CashRegistersPage />;
+      case 'pcEquipment':
+        return <PcEquipmentPage />;
+      case 'models':
+        return <EquipmentModelsPage />;
+      case 'tradeObjectTypes':
+        return <TradeObjectTypesPage />;
+      case 'templates':
+        return <DocumentTemplatesPage />;
     }
   };
 
@@ -254,12 +267,17 @@ function App() {
             renderSubtabs(DIRECTORY_SUBTABS, directorySubtab, (id) =>
               setDirectorySubtab(id as DirectorySubtab),
             )}
+          {topTab === 'settings' &&
+            renderSubtabs(SETTINGS_SUBTABS, settingsSubtab, (id) =>
+              setSettingsSubtab(id as SettingsSubtab),
+            )}
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
         {topTab === 'equipment' && renderEquipmentContent()}
         {topTab === 'directories' && renderDirectoryContent()}
+        {topTab === 'settings' && renderSettingsContent()}
         {topTab === 'reports' && (
           <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
             <FileText className="h-8 w-8 text-slate-400" />

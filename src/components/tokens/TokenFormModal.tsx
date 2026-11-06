@@ -248,27 +248,25 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
           </div>
         </FormField>
 
-        {isCpi && (
-          <FormField label="Принадлежность" htmlFor="token-client">
-            <div className="flex items-stretch gap-2">
-              <input
-                id="token-client"
-                className={`${inputClassName} ${values.client_name ? 'text-slate-900' : 'text-slate-400'}`}
-                value={values.client_name}
-                readOnly
-                placeholder="Выберите клиента"
-              />
-              <button
-                type="button"
-                onClick={() => setClientsOpen(true)}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
-              >
-                <Users className="h-4 w-4" />
-                Клиент
-              </button>
-            </div>
-          </FormField>
-        )}
+        <FormField label="Принадлежность" htmlFor="token-client">
+          <div className="flex items-stretch gap-2">
+            <input
+              id="token-client"
+              className={`${inputClassName} ${values.client_name ? 'text-slate-900' : 'text-slate-400'}`}
+              value={values.client_name}
+              readOnly
+              placeholder="Выберите клиента"
+            />
+            <button
+              type="button"
+              onClick={() => setClientsOpen(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+            >
+              <Users className="h-4 w-4" />
+              Клиент
+            </button>
+          </div>
+        </FormField>
 
         <FormField label="Статус токена" htmlFor="token-status">
           <select
