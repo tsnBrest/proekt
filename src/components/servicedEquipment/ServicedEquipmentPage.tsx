@@ -41,7 +41,8 @@ export default function ServicedEquipmentPage() {
         item.model.toLowerCase().includes(query) ||
         item.serial_number.toLowerCase().includes(query) ||
         item.software_version.toLowerCase().includes(query) ||
-        (item.client?.name ?? '').toLowerCase().includes(query),
+        (item.client?.name ?? '').toLowerCase().includes(query) ||
+        item.source.toLowerCase().includes(query),
     );
   }, [items, search]);
 
@@ -107,6 +108,7 @@ export default function ServicedEquipmentPage() {
               <th className="px-5 py-3">Модель</th>
               <th className="px-5 py-3">Заводской номер</th>
               <th className="px-5 py-3">Версия ПО</th>
+              <th className="px-5 py-3">Источник</th>
               <th className="px-5 py-3">Принадлежность</th>
               <th className="px-5 py-3 text-right">
                 <span className="sr-only">Действия</span>
@@ -114,34 +116,42 @@ export default function ServicedEquipmentPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {visibleItems.map((item) => (
+            {visibleItems.map((item) => {
+              const isManual = !item.id.startsWith('token-') && !item.id.startsWith('cloud-');
+              return (
               <tr key={item.id} className="transition-colors hover:bg-slate-50">
                 <td className="px-5 py-4 font-medium text-slate-900">{item.model}</td>
                 <td className="px-5 py-4 tabular-nums text-slate-700">{item.serial_number || '—'}</td>
                 <td className="px-5 py-4 tabular-nums text-slate-700">{item.software_version || '—'}</td>
+                <td className="px-5 py-4 text-slate-700">{item.source}</td>
                 <td className="px-5 py-4 text-slate-700">{item.client?.name ?? '—'}</td>
                 <td className="px-5 py-4">
-                  <div className="flex items-center justify-end gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setEditor({ mode: 'edit', equipment: item })}
-                      aria-label={`Редактировать ${item.model}`}
-                      className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPendingDelete(item)}
-                      aria-label={`Удалить ${item.model}`}
-                      className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+                  {isManual ? (
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setEditor({ mode: 'edit', equipment: item })}
+                        aria-label={`Редактировать ${item.model}`}
+                        className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPendingDelete(item)}
+                        aria-label={`Удалить ${item.model}`}
+                        className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="block text-right text-xs text-slate-400">только чтение</span>
+                  )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -173,7 +183,7 @@ export default function ServicedEquipmentPage() {
           type="search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Поиск по модели, номеру, версии или клиенту"
+          placeholder="Поиск по модели, номеру, версии, источнику или клиенту"
           aria-label="Поиск оборудования"
           className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
         />

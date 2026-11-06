@@ -155,10 +155,11 @@ export interface ServicedEquipment {
   serial_number: string;
   software_version: string;
   client_id: string | null;
+  source: string;
   client: { name: string } | null;
 }
 
-export type ServicedEquipmentInput = Omit<ServicedEquipment, 'id' | 'client'>;
+export type ServicedEquipmentInput = Omit<ServicedEquipment, 'id' | 'client' | 'source'>;
 
 export type CashRegisterOperationType = 'registration' | 'deregistration' | 'address_change' | 'repair';
 
