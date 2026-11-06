@@ -50,6 +50,9 @@ interface PcSlot {
   is_cloud: boolean;
   token_number: string;
   address: string;
+  new_address: string;
+  to_type: string;
+  to_name: string;
   cashRegisterId: string;
   selectedToken: Token | null;
 }
@@ -60,6 +63,9 @@ const emptySlot: PcSlot = {
   is_cloud: false,
   token_number: '',
   address: '',
+  new_address: '',
+  to_type: '',
+  to_name: '',
   cashRegisterId: '',
   selectedToken: null,
 };
@@ -81,6 +87,9 @@ export default function WorkstationOperationFormModal({
     is_cloud: operation?.is_cloud ?? false,
     token_number: operation?.token_number ?? '',
     address: operation?.address ?? '',
+    new_address: operation?.address ?? '',
+    to_type: '',
+    to_name: '',
     cashRegisterId: '',
     selectedToken: null,
   });
@@ -104,7 +113,7 @@ export default function WorkstationOperationFormModal({
 
   const isRegistration = operationType === 'registration';
   const isDeregistration = operationType === 'deregistration';
-  const needsAddress = operationType === 'registration' || operationType === 'address_change';
+  const needsAddress = isRegistration;
   const needsNotes = operationType === 'deregistration' || operationType === 'other';
 
   const DEREGISTRATION_REASONS = [
@@ -177,8 +186,8 @@ export default function WorkstationOperationFormModal({
 
   const handleClientChange = (newClientId: string) => {
     setClientId(newClientId);
-    setSlot1((prev) => ({ ...prev, selectedToken: null, token_number: '', cashRegisterId: '' }));
-    setSlot2((prev) => ({ ...prev, selectedToken: null, token_number: '', cashRegisterId: '' }));
+    setSlot1((prev) => ({ ...prev, selectedToken: null, token_number: '', cashRegisterId: '', address: '', new_address: '', to_type: '', to_name: '' }));
+    setSlot2((prev) => ({ ...prev, selectedToken: null, token_number: '', cashRegisterId: '', address: '', new_address: '', to_type: '', to_name: '' }));
   };
 
   const getSelectedCloudRegister = (slot: PcSlot) =>
@@ -214,7 +223,7 @@ export default function WorkstationOperationFormModal({
     operation_type: operationType,
     operation_date: operationDate,
     client_id: clientId || null,
-    address: slot.address.trim(),
+    address: operationType === 'address_change' ? (slot.new_address.trim() || slot.address.trim()) : slot.address.trim(),
     is_cloud: isRegistration ? slot.is_cloud : false,
     token_number: isRegistration && !slot.is_cloud ? slot.token_number.trim() : '',
     notes: (isDeregistration
@@ -327,13 +336,13 @@ export default function WorkstationOperationFormModal({
       }
     }
     if (operationType === 'address_change' && slot.selectedToken) {
-      await updateTokenAddress(slot.selectedToken.id, slot.address.trim());
+      await updateTokenAddress(slot.selectedToken.id, slot.new_address.trim());
       await createTokenHistoryEntry({
         token_id: slot.selectedToken.id,
         action: 'изменение адреса',
         action_date: operationDate,
         details: notes.trim(),
-        address: slot.address.trim(),
+        address: slot.new_address.trim(),
       });
     }
     if (isRegistration && slot.is_cloud) {
@@ -358,7 +367,11 @@ export default function WorkstationOperationFormModal({
     if (!operationDate) nextErrors.operation_date = 'Укажите дату';
     if (isRegistration && !clientId) nextErrors.client_id = 'Выберите клиента';
     if (needsAddress && !slot1.address.trim()) nextErrors['slot1_address'] = 'Укажите адрес';
+    if (operationType === 'address_change' && !slot1.new_address.trim())
+      nextErrors['slot1_new_address'] = 'Укажите новый адрес';
     if (isRegistration && !slot1.token_number.trim())
+      nextErrors['slot1_token'] = 'Выберите токен или DUSIC';
+    if (operationType === 'address_change' && !slot1.token_number.trim())
       nextErrors['slot1_token'] = 'Выберите токен или DUSIC';
     if (isDeregistration && !deregistrationReason) nextErrors.deregistration_reason = 'Выберите причину';
     if (isDeregistration && deregistrationReason === 'Прочие' && !deregistrationCustomText.trim())
@@ -729,6 +742,40 @@ ${tableRows}
           </FormField>
         )}
 
+        {operationType === 'address_change' && (
+          <FormField label="Новый адрес" htmlFor="ws-op-new-address" error={errors.slot1_new_address}>
+            <input
+              id="ws-op-new-address"
+              className={inputClassName}
+              value={slot1.new_address}
+              onChange={(event) => updateSlot(1, { new_address: event.target.value })}
+              placeholder="Введите новый адрес"
+            />
+          </FormField>
+        )}
+
+        {operationType === 'address_change' && (
+          <FormField label="Вид торгового объекта" htmlFor="ws-op-to-type">
+            <input
+              id="ws-op-to-type"
+              className={`${inputClassName} bg-slate-50`}
+              value={slot1.to_type}
+              readOnly
+            />
+          </FormField>
+        )}
+
+        {operationType === 'address_change' && (
+          <FormField label="Наименование торгового объекта" htmlFor="ws-op-to-name">
+            <input
+              id="ws-op-to-name"
+              className={`${inputClassName} bg-slate-50`}
+              value={slot1.to_name}
+              readOnly
+            />
+          </FormField>
+        )}
+
         {submitError && (
           <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{submitError}</p>
         )}
@@ -764,6 +811,9 @@ ${tableRows}
                 patch.pc_model = token.pc_model || '';
                 patch.pc_software_version = token.pc_software_version || '';
                 patch.address = token.pc_installation_address || '';
+                patch.new_address = token.pc_installation_address || '';
+                patch.to_type = token.to_type || '';
+                patch.to_name = token.to_name || '';
               }
               updateSlot(tokenPickerSlot, patch);
             }
