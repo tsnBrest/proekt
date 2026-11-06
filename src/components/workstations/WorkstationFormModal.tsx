@@ -3,13 +3,12 @@ import { Plus } from 'lucide-react';
 import ClientPicker from '@/components/ui/ClientPicker';
 import Modal from '@/components/ui/Modal';
 import FormField, { inputClassName } from '@/components/ui/FormField';
-import ModelPicker from '@/components/cashRegisters/ModelPicker';
 import TokenPicker from '@/components/workstations/TokenPicker';
 import ClientFormModal from '@/components/clients/ClientFormModal';
 import { createWorkstation, updateWorkstation } from '@/lib/api/workstations';
 import { fetchClients } from '@/lib/api/clients';
-import { fetchEquipmentModels } from '@/lib/api/equipmentModels';
-import type { Client, EquipmentModel, Workstation, WorkstationInput } from '@/types/directory';
+import { fetchCloudCashRegistersByClient } from '@/lib/api/cloudCashRegisters';
+import type { Client, CloudCashRegister, Workstation, WorkstationInput } from '@/types/directory';
 
 type FormErrors = Partial<Record<keyof WorkstationInput, string>>;
 
@@ -27,11 +26,11 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
     client_id: workstation?.client_id ?? '',
     installation_address: workstation?.installation_address ?? '',
   }));
-  const [models, setModels] = useState<EquipmentModel[]>([]);
-  const [modelsLoading, setModelsLoading] = useState(true);
   const [clients, setClients] = useState<Client[]>([]);
   const [clientsLoading, setClientsLoading] = useState(true);
   const [clientsError, setClientsError] = useState('');
+  const [cloudRegisters, setCloudRegisters] = useState<CloudCashRegister[]>([]);
+  const [cloudLoading, setCloudLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -51,12 +50,20 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
   }, []);
 
   useEffect(() => {
-    fetchEquipmentModels()
-      .then(setModels)
-      .catch(() => undefined)
-      .finally(() => setModelsLoading(false));
     loadClients();
   }, [loadClients]);
+
+  useEffect(() => {
+    if (!values.client_id) {
+      setCloudRegisters([]);
+      return;
+    }
+    setCloudLoading(true);
+    fetchCloudCashRegistersByClient(values.client_id)
+      .then(setCloudRegisters)
+      .catch(() => setCloudRegisters([]))
+      .finally(() => setCloudLoading(false));
+  }, [values.client_id]);
 
   const updateField = (key: keyof WorkstationInput, value: string) => {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -142,16 +149,34 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
           label="Модель ПК"
           htmlFor="workstation-model"
           error={errors.model}
-          hint={modelsLoading ? 'Загрузка моделей...' : 'Выбор из справочника моделей'}
+          hint={
+            !values.client_id
+              ? 'Сначала выберите клиента'
+              : cloudLoading
+                ? 'Загрузка облачных касс...'
+                : cloudRegisters.length === 0
+                  ? 'У клиента нет облачных касс'
+                  : 'Выбор из облачных касс клиента'
+          }
         >
-          <ModelPicker
+          <select
             id="workstation-model"
-            models={models}
+            className={inputClassName}
             value={values.model}
-            onModelChange={(model) => updateField('model', model)}
-            onSoftwareVersionChange={(version) => updateField('software_version', version)}
-            disabled={modelsLoading}
-          />
+            onChange={(event) => {
+              const selected = cloudRegisters.find((r) => r.pc_model === event.target.value);
+              updateField('model', event.target.value);
+              if (selected) updateField('software_version', selected.pc_software_version || '');
+            }}
+            disabled={cloudLoading || !values.client_id}
+          >
+            <option value="">{cloudLoading ? 'Загрузка...' : 'Выберите модель'}</option>
+            {cloudRegisters.map((reg) => (
+              <option key={reg.id} value={reg.pc_model}>
+                {reg.pc_model}
+              </option>
+            ))}
+          </select>
         </FormField>
 
         <FormField label="Версия ПК" htmlFor="workstation-software" hint="Подставляется из справочника моделей">
