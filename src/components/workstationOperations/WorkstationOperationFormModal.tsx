@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { FileText, KeyRound, Plus, TriangleAlert, Cloud } from 'lucide-react';
 import ClientPicker from '@/components/ui/ClientPicker';
 import Modal from '@/components/ui/Modal';
@@ -84,7 +84,7 @@ export default function WorkstationOperationFormModal({
   const [slot2, setSlot2] = useState<PcSlot>({ ...emptySlot });
   const [clients, setClients] = useState<Client[]>([]);
   const [clientsLoading, setClientsLoading] = useState(true);
-  const [models, setModels] = useState<EquipmentModel[]>([]);
+  const [allModels, setAllModels] = useState<EquipmentModel[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
   const [clientTokens, setClientTokens] = useState<Token[]>([]);
   const [clientCashRegisters, setClientCashRegisters] = useState<CashRegister[]>([]);
@@ -114,7 +114,7 @@ export default function WorkstationOperationFormModal({
 
   useEffect(() => {
     fetchEquipmentModels()
-      .then(setModels)
+      .then(setAllModels)
       .catch(() => undefined)
       .finally(() => setModelsLoading(false));
     loadClients();
@@ -143,6 +143,11 @@ export default function WorkstationOperationFormModal({
   useEffect(() => {
     loadClientData();
   }, [loadClientData]);
+
+  const models = useMemo(
+    () => allModels.filter((m) => m.model.toLowerCase().includes('dusik')),
+    [allModels],
+  );
 
   const updateSlot = (slot: 1 | 2, patch: Partial<PcSlot>) => {
     if (slot === 1) setSlot1((prev) => ({ ...prev, ...patch }));
@@ -353,7 +358,7 @@ ${tableRows}
           </h3>
         </div>
 
-        <FormField label="Модель ПК" htmlFor={`${prefix}-model`} hint={modelsLoading ? 'Загрузка...' : undefined}>
+        <FormField label="Модель ПК" htmlFor={`${prefix}-model`} hint={modelsLoading ? 'Загрузка...' : 'Только модели Dusik'}>
           <ModelPicker
             id={`${prefix}-model`}
             models={models}

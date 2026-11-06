@@ -244,3 +244,13 @@ export interface CloudCashRegister {
 }
 
 export type CloudCashRegisterInput = Omit<CloudCashRegister, 'id' | 'client'>;
+
+export type StatusCategory = 'cash_register' | 'token';
+
+export interface Status {
+  id: string;
+  name: string;
+  category: StatusCategory;
+}
+
+export type StatusInput = Omit<Status, 'id'>;

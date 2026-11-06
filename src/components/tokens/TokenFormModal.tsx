@@ -7,7 +7,8 @@ import ContractFormModal from '@/components/contracts/ContractFormModal';
 import PcEquipmentFormModal from '@/components/pcEquipment/PcEquipmentFormModal';
 import { fetchTokenBatchesByOperator, deleteTokenBatchByNumber } from '@/lib/api/tokenBatches';
 import { fetchPcEquipment } from '@/lib/api/pcEquipment';
-import { createToken, updateToken, DUPLICATE_ERROR_CODE, TOKEN_STATUSES } from '@/lib/api/tokens';
+import { createToken, updateToken, DUPLICATE_ERROR_CODE } from '@/lib/api/tokens';
+import { fetchStatusesByCategory } from '@/lib/api/statuses';
 import { fetchEquipmentModels } from '@/lib/api/equipmentModels';
 import { fetchTradeObjectTypes } from '@/lib/api/tradeObjectTypes';
 import { fetchPriceList } from '@/lib/api/priceList';
@@ -19,11 +20,11 @@ import type {
   EquipmentModel,
   PcEquipment,
   PriceListItem,
+  Status,
   Token,
   TokenBatch,
   TokenInput,
   TokenOperatorType,
-  TokenStatus,
   TradeObjectType,
 } from '@/types/directory';
 
@@ -56,7 +57,7 @@ type ExtendedValues = {
   to_type: string;
   to_name: string;
   contract_number: string;
-  status: TokenStatus;
+  status: string;
   itp_price: string;
 };
 
@@ -96,6 +97,7 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
   const [pcEquipmentFormOpen, setPcEquipmentFormOpen] = useState(false);
   const [priceListOpen, setPriceListOpen] = useState(false);
   const [priceList, setPriceList] = useState<PriceListItem[]>([]);
+  const [tokenStatuses, setTokenStatuses] = useState<Status[]>([]);
 
   useEffect(() => {
     fetchEquipmentModels()
@@ -108,6 +110,9 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
       .finally(() => setTradeObjectTypesLoading(false));
     fetchPriceList()
       .then(setPriceList)
+      .catch(() => undefined);
+    fetchStatusesByCategory('token')
+      .then(setTokenStatuses)
       .catch(() => undefined);
     if (values.client_id) {
       fetchClients()
@@ -158,7 +163,7 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
         to_type: values.to_type,
         to_name: '',
         contract_number: values.contract_number,
-        status: values.status,
+        status: values.status as TokenInput['status'],
         itp_price: parseFloat(values.itp_price) || 0,
       };
       if (token) {
@@ -285,24 +290,25 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
             id="token-status"
             className={inputClassName}
             value={values.status}
-            onChange={(event) => updateField('status', event.target.value as TokenStatus)}
+            onChange={(event) => updateField('status', event.target.value)}
           >
-            {TOKEN_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
+            {tokenStatuses.map((s) => (
+              <option key={s.id} value={s.name}>
+                {s.name.charAt(0).toUpperCase() + s.name.slice(1)}
               </option>
             ))}
           </select>
         </FormField>
 
-        <FormField label="Оборудование" htmlFor="token-equipment-name">
+        <FormField label="Оборудование" htmlFor="token-equipment-name" className="sm:col-span-2">
           <div className="flex items-stretch gap-2">
-            <input
+            <textarea
               id="token-equipment-name"
               className={inputClassName}
               value={values.equipment_name}
               onChange={(event) => updateField('equipment_name', event.target.value)}
               placeholder="Наименование оборудования"
+              rows={2}
             />
             <button
               type="button"

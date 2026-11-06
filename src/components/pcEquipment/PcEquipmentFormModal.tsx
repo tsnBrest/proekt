@@ -106,13 +106,14 @@ export default function PcEquipmentFormModal({ item, onClose, onSaved }: PcEquip
         onSubmit={handleSubmit}
         className="grid grid-cols-1 gap-x-5 gap-y-5 pb-16 sm:grid-cols-2"
       >
-        <FormField label="Наименование оборудования" htmlFor="pc-eq-name" error={errors.name}>
-          <input
+        <FormField label="Наименование оборудования" htmlFor="pc-eq-name" error={errors.name} className="sm:col-span-2">
+          <textarea
             id="pc-eq-name"
             className={inputClassName}
             value={values.name}
             onChange={(event) => updateField('name', event.target.value)}
             placeholder="Например, Системный блок"
+            rows={2}
             autoFocus
           />
         </FormField>

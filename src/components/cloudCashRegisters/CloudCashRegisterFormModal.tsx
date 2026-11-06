@@ -12,6 +12,7 @@ import { fetchTradeObjectTypes } from '@/lib/api/tradeObjectTypes';
 import { fetchPriceList } from '@/lib/api/priceList';
 import { fetchContracts } from '@/lib/api/contracts';
 import { fetchClients } from '@/lib/api/clients';
+import { fetchStatusesByCategory } from '@/lib/api/statuses';
 import type {
   Client,
   Contract,
@@ -20,6 +21,7 @@ import type {
   EquipmentModel,
   PcEquipment,
   PriceListItem,
+  Status,
   TradeObjectType,
 } from '@/types/directory';
 
@@ -80,6 +82,7 @@ export default function CloudCashRegisterFormModal({
   const [pcEquipmentFormOpen, setPcEquipmentFormOpen] = useState(false);
   const [priceListOpen, setPriceListOpen] = useState(false);
   const [priceList, setPriceList] = useState<PriceListItem[]>([]);
+  const [cashRegisterStatuses, setCashRegisterStatuses] = useState<Status[]>([]);
 
   useEffect(() => {
     fetchEquipmentModels()
@@ -92,6 +95,9 @@ export default function CloudCashRegisterFormModal({
       .finally(() => setTradeObjectTypesLoading(false));
     fetchPriceList()
       .then(setPriceList)
+      .catch(() => undefined);
+    fetchStatusesByCategory('cash_register')
+      .then(setCashRegisterStatuses)
       .catch(() => undefined);
     if (values.client_id) {
       fetchClients()
@@ -216,20 +222,23 @@ export default function CloudCashRegisterFormModal({
             onChange={(event) => updateField('register_status', event.target.value)}
           >
             <option value="">Выберите статус</option>
-            <option value="не зарегистрирована">Не зарегистрирована</option>
-            <option value="зарегистрирована облачная">Зарегистрирована облачная</option>
-            <option value="снята с регистрации">Снята с регистрации</option>
+            {cashRegisterStatuses.map((s) => (
+              <option key={s.id} value={s.name}>
+                {s.name.charAt(0).toUpperCase() + s.name.slice(1)}
+              </option>
+            ))}
           </select>
         </FormField>
 
-        <FormField label="Оборудование" htmlFor="ccr-equipment-name">
+        <FormField label="Оборудование" htmlFor="ccr-equipment-name" className="sm:col-span-2">
           <div className="flex items-stretch gap-2">
-            <input
+            <textarea
               id="ccr-equipment-name"
               className={inputClassName}
               value={values.equipment_name}
               onChange={(event) => updateField('equipment_name', event.target.value)}
               placeholder="Наименование оборудования"
+              rows={2}
             />
             <button
               type="button"
