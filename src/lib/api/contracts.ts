@@ -31,14 +31,17 @@ export async function deleteContract(id: string): Promise<void> {
 export async function suggestNextContractNumber(): Promise<string> {
   const { data, error } = await supabase
     .from('contracts')
-    .select('number')
-    .order('created_at', { ascending: false })
-    .limit(1);
+    .select('number');
   if (error) throw new Error(error.message);
-  const last = (data ?? [])[0]?.number;
-  if (!last) return '';
-  const match = last.match(/^(\d+)/);
-  if (!match) return '';
-  const nextNum = parseInt(match[1], 10) + 1;
-  return String(nextNum);
+  const allNumbers = (data ?? []).map((r) => r.number).filter(Boolean);
+  if (allNumbers.length === 0) return '1';
+  const numericSet = new Set<number>();
+  for (const num of allNumbers) {
+    const match = num.match(/^(\d+)/);
+    if (match) numericSet.add(parseInt(match[1], 10));
+  }
+  if (numericSet.size === 0) return '1';
+  let candidate = 1;
+  while (numericSet.has(candidate)) candidate++;
+  return String(candidate);
 }

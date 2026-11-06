@@ -89,6 +89,18 @@ export interface Token {
 
 export type TokenInput = Omit<Token, 'id'>;
 
+export type TokenBatchOperatorLabel = 'АЙЭМЛЭБ' | 'ЦПИ';
+
+export interface TokenBatch {
+  id: string;
+  operator_label: TokenBatchOperatorLabel;
+  start_number: string;
+  end_number: string;
+  created_at: string;
+}
+
+export type TokenBatchInput = Omit<TokenBatch, 'id' | 'created_at'>;
+
 export interface TradeObjectType {
   id: string;
   name: string;

@@ -19,6 +19,7 @@ import TokensPage from '@/components/tokens/TokensPage';
 import WorkstationOperationsPage from '@/components/workstationOperations/WorkstationOperationsPage';
 import ContractsPage from '@/components/contracts/ContractsPage';
 import TradeObjectTypesPage from '@/components/tradeObjectTypes/TradeObjectTypesPage';
+import TokenBasesPage from '@/components/tokenBases/TokenBasesPage';
 import DocumentTemplatesPage from '@/components/documentTemplates/DocumentTemplatesPage';
 import type { LucideIcon } from 'lucide-react';
 import type { CashRegisterOperationType, WorkstationOperationType } from '@/types/directory';
@@ -36,6 +37,7 @@ type DirectorySubtab =
   | 'models'
   | 'contracts'
   | 'tradeObjectTypes'
+  | 'tokenBases'
   | 'templates'
   | 'tokensIkassa'
   | 'tokensCpi';
@@ -65,6 +67,7 @@ const DIRECTORY_SUBTABS: Subtab[] = [
   { id: 'models', label: 'Модели' },
   { id: 'contracts', label: 'Справочник договоров' },
   { id: 'tradeObjectTypes', label: 'Типы торговых объектов' },
+  { id: 'tokenBases', label: 'Токены база' },
   { id: 'templates', label: 'Шаблоны документов' },
   { id: 'tokensIkassa', label: 'Токены iKassa' },
   { id: 'tokensCpi', label: 'Токены ЦПИ' },
@@ -165,6 +168,8 @@ function App() {
         return <ContractsPage />;
       case 'tradeObjectTypes':
         return <TradeObjectTypesPage />;
+      case 'tokenBases':
+        return <TokenBasesPage />;
       case 'templates':
         return <DocumentTemplatesPage />;
       case 'tokensIkassa':
