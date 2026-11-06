@@ -106,7 +106,7 @@ export default function Modal({ title, onClose, children, footer, maxWidth = 'ma
               transform: position ? 'none' : undefined,
               margin: position ? '0' : undefined,
             }}
-            onMouseDown={() => focus(id)}
+            onMouseDown={(e) => e.stopPropagation()}
           >
             <div
               className="flex cursor-move items-center justify-between border-b border-slate-200 px-6 py-4 select-none"
