@@ -114,7 +114,17 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
       .then(setPriceList)
       .catch(() => undefined);
     fetchStatusesByCategory('token')
-      .then(setTokenStatuses)
+      .then((tokenStatuses) => {
+        setTokenStatuses(tokenStatuses);
+        if (!token && tokenStatuses.length > 0) {
+          setValues((prev) => ({
+            ...prev,
+            status: prev.status && tokenStatuses.some((s) => s.name === prev.status)
+              ? prev.status
+              : tokenStatuses[0].name,
+          }));
+        }
+      })
       .catch(() => undefined);
     if (values.client_id) {
       fetchClients()
