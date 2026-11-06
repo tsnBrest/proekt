@@ -41,7 +41,8 @@ type DirectorySubtab =
   | 'contracts'
   | 'tokenBases'
   | 'tokensIkassa'
-  | 'tokensCpi';
+  | 'tokensCpi'
+  | 'cloudCashRegisters';
 
 type SettingsSubtab =
   | 'banks'
@@ -51,7 +52,6 @@ type SettingsSubtab =
   | 'tradeObjectTypes'
   | 'templates'
   | 'priceList'
-  | 'cloudCashRegisters'
   | 'statuses';
 
 interface Subtab {
@@ -79,6 +79,7 @@ const DIRECTORY_SUBTABS: Subtab[] = [
   { id: 'tokenBases', label: 'Токены база' },
   { id: 'tokensIkassa', label: 'Токены iKassa' },
   { id: 'tokensCpi', label: 'Токены ЦПИ' },
+  { id: 'cloudCashRegisters', label: 'Облачные кассы' },
 ];
 
 const SETTINGS_SUBTABS: Subtab[] = [
@@ -89,7 +90,6 @@ const SETTINGS_SUBTABS: Subtab[] = [
   { id: 'tradeObjectTypes', label: 'Типы торговых объектов' },
   { id: 'templates', label: 'Шаблоны документов' },
   { id: 'priceList', label: 'Прейскурант цен' },
-  { id: 'cloudCashRegisters', label: 'Облачные кассы' },
   { id: 'statuses', label: 'Статусы' },
 ];
 
@@ -187,6 +187,8 @@ function App() {
         return <TokensPage operatorType="ikassa" />;
       case 'tokensCpi':
         return <TokensPage operatorType="cpi" />;
+      case 'cloudCashRegisters':
+        return <CloudCashRegistersPage />;
     }
   };
 
@@ -206,8 +208,6 @@ function App() {
         return <DocumentTemplatesPage />;
       case 'priceList':
         return <PriceListPage />;
-      case 'cloudCashRegisters':
-        return <CloudCashRegistersPage />;
       case 'statuses':
         return <StatusesPage />;
     }
