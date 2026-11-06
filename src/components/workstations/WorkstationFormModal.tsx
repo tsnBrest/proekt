@@ -73,19 +73,28 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
       setSelectedCloudId('');
       return;
     }
+    let cancelled = false;
     setCloudLoading(true);
     setCloudError('');
     fetchCloudCashRegistersByClient(values.client_id)
       .then((data) => {
+        if (cancelled) return;
         setCloudRegisters(data);
         setSelectedCloudId('');
       })
       .catch((err) => {
+        if (cancelled) return;
         setCloudRegisters([]);
         setCloudError('Не удалось загрузить облачные кассы клиента.');
         console.error('cloud registers fetch error:', err);
       })
-      .finally(() => setCloudLoading(false));
+      .finally(() => {
+        if (cancelled) return;
+        setCloudLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [values.client_id, values.is_cloud]);
 
   const updateField = (key: keyof WorkstationInput, value: string) => {
@@ -293,6 +302,12 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
 
         {submitError && (
           <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 sm:col-span-2">{submitError}</p>
+        )}
+
+        {values.is_cloud && (
+          <p className="rounded-lg bg-slate-50 px-4 py-2 text-xs text-slate-500 sm:col-span-2">
+            Отладка: client_id={values.client_id || '(пусто)'}, is_cloud={String(values.is_cloud)}, загружено касс: {cloudRegisters.length}, loading={String(cloudLoading)}, error={cloudError || '(нет)'}
+          </p>
         )}
       </form>
 
