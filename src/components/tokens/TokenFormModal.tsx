@@ -111,8 +111,8 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
   const isCpi = operatorType === 'cpi';
 
   const models = useMemo(() => {
-    if (!isCpi) return allModels;
-    return allModels.filter((m) => m.model.toLowerCase().includes('titan'));
+    if (isCpi) return allModels.filter((m) => m.model.toLowerCase().includes('titan'));
+    return allModels.filter((m) => m.model.toLowerCase().includes('ikassa'));
   }, [allModels, isCpi]);
 
   const updateField = useCallback(<K extends keyof ExtendedValues>(key: K, value: ExtendedValues[K]) => {
@@ -136,16 +136,16 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
         client_id: values.client_id,
         pc_model: values.pc_model,
         pc_software_version: values.pc_software_version,
-        equipment_model: isCpi ? '' : values.equipment_model,
+        equipment_model: '',
         equipment_serial_number: isCpi ? '' : values.equipment_serial_number,
         equipment_name: isCpi ? values.equipment_name : '',
         equipment_status: isCpi ? values.equipment_status : '',
-        installation_name: isCpi ? '' : values.installation_name,
+        installation_name: '',
         pc_installation_address: values.pc_installation_address,
         working_hours: values.working_hours,
         gln: values.gln,
         to_type: values.to_type,
-        to_name: isCpi ? '' : values.to_name,
+        to_name: '',
         contract_number: values.contract_number,
         status: values.status,
       };
@@ -153,14 +153,13 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
         await updateToken(token.id, input);
       } else {
         await createToken(input);
-        if (isCpi) {
-          const batchNumber = values.number.replace(/^AVQ/i, '').trim();
-          if (batchNumber) {
-            try {
-              await deleteTokenBatchByNumber('ЦПИ', batchNumber);
-            } catch {
-              // non-critical
-            }
+        const batchNumber = values.number.replace(/^AVQ/i, '').trim();
+        if (batchNumber) {
+          const batchLabel = isCpi ? 'ЦПИ' : 'АЙЭМЛЭБ';
+          try {
+            await deleteTokenBatchByNumber(batchLabel, batchNumber);
+          } catch {
+            // non-critical
           }
         }
       }
@@ -227,7 +226,7 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
               placeholder="Например, AVQ000123"
               autoFocus
             />
-            {isCpi && (
+            {isCpi ? (
               <button
                 type="button"
                 onClick={() => setTokenBaseOpen(true)}
@@ -235,6 +234,15 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
               >
                 <Database className="h-4 w-4" />
                 Токен ЦПИ
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setTokenBaseOpen(true)}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-amber-700"
+              >
+                <Database className="h-4 w-4" />
+                Токен iKassa
               </button>
             )}
           </div>
@@ -338,7 +346,7 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
               ? 'Загрузка моделей...'
               : isCpi
                 ? 'Только модели Titan'
-                : 'Выбор из справочника моделей'
+                : 'Только модели iKassa'
           }
         >
           <ModelPicker
@@ -361,88 +369,28 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
           />
         </FormField>
 
-        {!isCpi && (
-          <FormField label="Модель оборудования" htmlFor="token-equipment-model">
-            <input
-              id="token-equipment-model"
-              className={inputClassName}
-              value={values.equipment_model}
-              onChange={(event) => updateField('equipment_model', event.target.value)}
-              placeholder="Модель оборудования"
-            />
-          </FormField>
-        )}
-
-        {!isCpi && (
-          <FormField label="Заводской номер оборудования" htmlFor="token-equipment-serial">
-            <input
-              id="token-equipment-serial"
-              className={inputClassName}
-              value={values.equipment_serial_number}
-              onChange={(event) => updateField('equipment_serial_number', event.target.value)}
-              placeholder="Серийный номер"
-            />
-          </FormField>
-        )}
-
-        {isCpi ? (
-          <FormField
-            label="Вид торгового объекта"
-            htmlFor="token-trade-object-type"
-            hint={tradeObjectTypesLoading ? 'Загрузка справочника...' : 'Выбор из справочника типов'}
+        <FormField
+          label="Вид торгового объекта"
+          htmlFor="token-trade-object-type"
+          hint={tradeObjectTypesLoading ? 'Загрузка справочника...' : 'Выбор из справочника типов'}
+        >
+          <select
+            id="token-trade-object-type"
+            className={inputClassName}
+            value={values.to_type}
+            onChange={(event) => updateField('to_type', event.target.value)}
+            disabled={tradeObjectTypesLoading}
           >
-            <select
-              id="token-trade-object-type"
-              className={inputClassName}
-              value={values.to_type}
-              onChange={(event) => updateField('to_type', event.target.value)}
-              disabled={tradeObjectTypesLoading}
-            >
-              <option value="">
-                {tradeObjectTypesLoading ? 'Загрузка...' : 'Выберите тип'}
+            <option value="">
+              {tradeObjectTypesLoading ? 'Загрузка...' : 'Выберите тип'}
+            </option>
+            {tradeObjectTypes.map((tot) => (
+              <option key={tot.id} value={tot.name}>
+                {tot.name}
               </option>
-              {tradeObjectTypes.map((tot) => (
-                <option key={tot.id} value={tot.name}>
-                  {tot.name}
-                </option>
-              ))}
-            </select>
-          </FormField>
-        ) : (
-          <FormField label="Вид ТО" htmlFor="token-to-type">
-            <input
-              id="token-to-type"
-              className={inputClassName}
-              value={values.to_type}
-              onChange={(event) => updateField('to_type', event.target.value)}
-              placeholder="Вид технического обслуживания"
-            />
-          </FormField>
-        )}
-
-        {!isCpi && (
-          <FormField label="Наименование ТО" htmlFor="token-to-name">
-            <input
-              id="token-to-name"
-              className={inputClassName}
-              value={values.to_name}
-              onChange={(event) => updateField('to_name', event.target.value)}
-              placeholder="Наименование технического обслуживания"
-            />
-          </FormField>
-        )}
-
-        {!isCpi && (
-          <FormField label="Наименование места установки" htmlFor="token-installation-name">
-            <input
-              id="token-installation-name"
-              className={inputClassName}
-              value={values.installation_name}
-              onChange={(event) => updateField('installation_name', event.target.value)}
-              placeholder="Наименование места установки"
-            />
-          </FormField>
-        )}
+            ))}
+          </select>
+        </FormField>
 
         <FormField label="Адрес установки ПК" htmlFor="token-pc-installation-address">
           <input
@@ -474,27 +422,25 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
           />
         </FormField>
 
-        {isCpi && (
-          <FormField label="№ договора с ЦТО «Анъюск»" htmlFor="token-contract-number">
-            <div className="flex items-stretch gap-2">
-              <input
-                id="token-contract-number"
-                className={inputClassName}
-                value={values.contract_number}
-                onChange={(event) => updateField('contract_number', event.target.value)}
-                placeholder="Номер договора"
-              />
-              <button
-                type="button"
-                onClick={() => setContractsOpen(true)}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
-              >
-                <FileText className="h-4 w-4" />
-                Договор
-              </button>
-            </div>
-          </FormField>
-        )}
+        <FormField label="№ договора с ЦТО «Анъюск»" htmlFor="token-contract-number">
+          <div className="flex items-stretch gap-2">
+            <input
+              id="token-contract-number"
+              className={inputClassName}
+              value={values.contract_number}
+              onChange={(event) => updateField('contract_number', event.target.value)}
+              placeholder="Номер договора"
+            />
+            <button
+              type="button"
+              onClick={() => setContractsOpen(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+            >
+              <FileText className="h-4 w-4" />
+              Договор
+            </button>
+          </div>
+        </FormField>
 
         {submitError && (
           <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 sm:col-span-2">{submitError}</p>
@@ -525,6 +471,7 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
 
       {tokenBaseOpen && (
         <TokenBasePickerModal
+          operatorLabel={isCpi ? 'ЦПИ' : 'АЙЭМЛЭБ'}
           onClose={() => setTokenBaseOpen(false)}
           onSelect={(tokenNumber) => {
             updateField('number', tokenNumber);
@@ -791,22 +738,23 @@ function ClientPickerModal({ currentClientId, onClose, onSelect }: ClientPickerM
 }
 
 interface TokenBasePickerModalProps {
+  operatorLabel: string;
   onClose: () => void;
   onSelect: (tokenNumber: string) => void;
 }
 
-function TokenBasePickerModal({ onClose, onSelect }: TokenBasePickerModalProps) {
+function TokenBasePickerModal({ operatorLabel, onClose, onSelect }: TokenBasePickerModalProps) {
   const [items, setItems] = useState<TokenBatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    fetchTokenBatchesByOperator('ЦПИ')
+    fetchTokenBatchesByOperator(operatorLabel as 'ЦПИ' | 'АЙЭМЛЭБ')
       .then(setItems)
       .catch(() => setLoadError('Не удалось загрузить базу токенов.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [operatorLabel]);
 
   const visibleItems = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -825,7 +773,7 @@ function TokenBasePickerModal({ onClose, onSelect }: TokenBasePickerModalProps) 
   return (
     <Modal
       maxWidth="max-w-3xl"
-      title="Токены база — ЦПИ"
+      title={`Токены база — ${operatorLabel}`}
       onClose={onClose}
       footer={
         <button
@@ -856,7 +804,7 @@ function TokenBasePickerModal({ onClose, onSelect }: TokenBasePickerModalProps) 
           <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{loadError}</p>
         ) : visibleItems.length === 0 ? (
           <p className="py-8 text-center text-sm text-slate-500">
-            {items.length === 0 ? 'Токенов ЦПИ в базе нет.' : 'Ничего не найдено.'}
+            {items.length === 0 ? `Токенов ${operatorLabel} в базе нет.` : 'Ничего не найдено.'}
           </p>
         ) : (
           <ul className="max-h-80 divide-y divide-slate-100 overflow-auto rounded-xl border border-slate-200">
