@@ -80,9 +80,10 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
         setCloudRegisters(data);
         setSelectedCloudId('');
       })
-      .catch(() => {
+      .catch((err) => {
         setCloudRegisters([]);
         setCloudError('Не удалось загрузить облачные кассы клиента.');
+        console.error('cloud registers fetch error:', err);
       })
       .finally(() => setCloudLoading(false));
   }, [values.client_id, values.is_cloud]);
