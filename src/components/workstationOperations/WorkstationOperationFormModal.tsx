@@ -97,10 +97,24 @@ export default function WorkstationOperationFormModal({
   const [clientFormOpen, setClientFormOpen] = useState(false);
   const [tokenFormOpen, setTokenFormOpen] = useState<null | 'ikassa' | 'cpi'>(null);
   const [cloudCashRegisterFormOpen, setCloudCashRegisterFormOpen] = useState(false);
+  const [deregistrationReason, setDeregistrationReason] = useState('');
+  const [deregistrationCustomText, setDeregistrationCustomText] = useState('');
 
   const isRegistration = operationType === 'registration';
+  const isDeregistration = operationType === 'deregistration';
   const needsAddress = operationType === 'registration' || operationType === 'address_change';
   const needsNotes = operationType === 'deregistration' || operationType === 'other';
+
+  const DEREGISTRATION_REASONS = [
+    'Закрытие торгового объекта',
+    'Закрытие магазина',
+    'Ликвидация ИП',
+    'Ликвидация предприятия',
+    'Продажа автомобиля',
+    'Реорганизация предприятия',
+    'Прекращение приема наличных денежных средств',
+    'Прочие',
+  ];
 
   const loadClients = useCallback(async () => {
     setClientsLoading(true);
@@ -201,7 +215,11 @@ export default function WorkstationOperationFormModal({
     address: slot.address.trim(),
     is_cloud: isRegistration ? slot.is_cloud : false,
     token_number: isRegistration && !slot.is_cloud ? slot.token_number.trim() : '',
-    notes: notes.trim(),
+    notes: (isDeregistration
+      ? deregistrationReason === 'Прочие'
+        ? deregistrationCustomText.trim()
+        : deregistrationReason
+      : notes.trim()),
     pc_model: slot.pc_model.trim(),
     pc_software_version: slot.pc_software_version.trim(),
   });
@@ -261,7 +279,10 @@ export default function WorkstationOperationFormModal({
     if (needsAddress && !slot1.address.trim()) nextErrors['slot1_address'] = 'Укажите адрес';
     if (isRegistration && !slot1.token_number.trim())
       nextErrors['slot1_token'] = 'Выберите токен или DUSIC';
-    if (needsNotes && !notes.trim()) nextErrors.notes = 'Укажите описание';
+    if (isDeregistration && !deregistrationReason) nextErrors.deregistration_reason = 'Выберите причину';
+    if (isDeregistration && deregistrationReason === 'Прочие' && !deregistrationCustomText.trim())
+      nextErrors.deregistration_custom = 'Укажите причину';
+    if (needsNotes && !isDeregistration && !notes.trim()) nextErrors.notes = 'Укажите описание';
 
     const hasSlot2 = isRegistration && !isSlot2Empty(slot2);
     if (hasSlot2 && isRegistration && !slot2.token_number.trim())
@@ -308,7 +329,7 @@ export default function WorkstationOperationFormModal({
       ['Клиент', clientName],
       ...buildSlotRows('ПК 1', slot1),
       ...(isRegistration && !isSlot2Empty(slot2) ? buildSlotRows('ПК 2', slot2) : []),
-      ['Примечание', notes],
+      ['Примечание', isDeregistration ? (deregistrationReason === 'Прочие' ? deregistrationCustomText : deregistrationReason) : notes],
     ];
 
     const tableRows = rows
@@ -544,9 +565,45 @@ ${tableRows}
           renderSlot(1, slot1, false)
         )}
 
-        {(needsNotes || needsAddress) && (
+        {isDeregistration && (
           <FormField
-            label={operationType === 'deregistration' ? 'Причина снятия' : 'Примечание'}
+            label="Причина снятия"
+            htmlFor="ws-op-dereg-reason"
+            error={errors.deregistration_reason}
+          >
+            <select
+              id="ws-op-dereg-reason"
+              className={inputClassName}
+              value={deregistrationReason}
+              onChange={(event) => setDeregistrationReason(event.target.value)}
+            >
+              <option value="">Выберите причину</option>
+              {DEREGISTRATION_REASONS.map((reason) => (
+                <option key={reason} value={reason}>{reason}</option>
+              ))}
+            </select>
+          </FormField>
+        )}
+
+        {isDeregistration && deregistrationReason === 'Прочие' && (
+          <FormField
+            label="Уточнение причины"
+            htmlFor="ws-op-dereg-custom"
+            error={errors.deregistration_custom}
+          >
+            <input
+              id="ws-op-dereg-custom"
+              className={inputClassName}
+              value={deregistrationCustomText}
+              onChange={(event) => setDeregistrationCustomText(event.target.value)}
+              placeholder="Введите причину снятия"
+            />
+          </FormField>
+        )}
+
+        {needsNotes && !isDeregistration && (
+          <FormField
+            label="Примечание"
             htmlFor="ws-op-notes"
             error={errors.notes}
           >
@@ -563,10 +620,10 @@ ${tableRows}
 
         {(operationType === 'deregistration' || operationType === 'address_change') && (
           <FormField
-            label="Токен"
+            label="Токен ПК/Dusik"
             htmlFor="ws-op-token-action"
             error={errors.slot1_token}
-            hint="Токены выбранного клиента"
+            hint="Токены и облачные кассы выбранного клиента"
           >
             <button
               id="ws-op-token-action"
@@ -575,8 +632,19 @@ ${tableRows}
               disabled={!clientId}
               className={`${inputClassName} text-left ${slot1.token_number ? 'text-slate-900' : 'text-slate-400'} disabled:cursor-not-allowed disabled:opacity-50`}
             >
-              {slot1.token_number || (clientId ? 'Выберите токен' : 'Сначала выберите клиента')}
+              {slot1.token_number || (clientId ? 'Выберите токен или DUSIC' : 'Сначала выберите клиента')}
             </button>
+          </FormField>
+        )}
+
+        {(operationType === 'deregistration' || operationType === 'address_change') && slot1.address && (
+          <FormField label="Место установки" htmlFor="ws-op-install-place">
+            <input
+              id="ws-op-install-place"
+              className={`${inputClassName} bg-slate-50`}
+              value={slot1.address}
+              readOnly
+            />
           </FormField>
         )}
 
