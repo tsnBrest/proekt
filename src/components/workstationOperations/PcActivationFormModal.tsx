@@ -6,7 +6,9 @@ import ClientPicker from '@/components/ui/ClientPicker';
 import { fetchClients } from '@/lib/api/clients';
 import { fetchTokensByClient } from '@/lib/api/tokens';
 import { fetchCloudCashRegistersByClient } from '@/lib/api/cloudCashRegisters';
-import { fetchAllStatuses, updateStatus as updateStatusRow } from '@/lib/api/statuses';
+import { createPcActivation } from '@/lib/api/pcActivations';
+import { updateTokenStatus } from '@/lib/api/tokens';
+import { fetchAllStatuses } from '@/lib/api/statuses';
 import type { Client, CloudCashRegister, Status, Token } from '@/types/directory';
 
 type DeviceItem =
@@ -109,17 +111,25 @@ export default function PcActivationFormModal({ onClose, onSaved }: PcActivation
     if (!selectedDevice) nextErrors.device = 'Выберите ПК клиента';
     if (!newStatus) nextErrors.new_status = 'Выберите статус';
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    if (Object.keys(nextErrors).length > 0 || !selectedDevice) return;
 
+    const device = selectedDevice;
     setSaving(true);
     setSubmitError('');
     try {
-      const statusRecord = statuses.find((s) => s.name === newStatus);
-      if (statusRecord) {
-        await updateStatusRow(statusRecord.id, {
-          name: newStatus,
-          category: statusRecord.category,
-        });
+      await createPcActivation({
+        activation_date: operationDate,
+        client_id: clientId,
+        device_kind: device.kind,
+        device_id: device.id,
+        device_number: device.number,
+        previous_status: device.status,
+        new_status: newStatus,
+        reg_number_skko: regNumber,
+        notes,
+      });
+      if (device.kind === 'token') {
+        await updateTokenStatus(device.id, newStatus);
       }
       onSaved();
       onClose();
