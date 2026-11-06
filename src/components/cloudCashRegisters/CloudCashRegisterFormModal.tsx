@@ -189,7 +189,7 @@ export default function CloudCashRegisterFormModal({
           <input
             id="ccr-operator"
             className={`${inputClassName} bg-slate-100`}
-            value="DusicCloud"
+            value="iKassa"
             disabled
           />
         </FormField>
@@ -719,6 +719,7 @@ function PcEquipmentPickerModal({ onClose, onSelect }: PcEquipmentPickerModalPro
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [search, setSearch] = useState('');
+  const [selectedItem, setSelectedItem] = useState<PcEquipment | null>(null);
 
   const loadItems = useCallback(() => {
     setLoading(true);
@@ -751,13 +752,23 @@ function PcEquipmentPickerModal({ onClose, onSelect }: PcEquipmentPickerModalPro
       title="Справочник оборудования ПК"
       onClose={onClose}
       footer={
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-lg px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
-        >
-          Закрыть
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
+          >
+            Отмена
+          </button>
+          <button
+            type="button"
+            onClick={() => selectedItem && onSelect(selectedItem.name, selectedItem.serial_number, selectedItem.status)}
+            disabled={!selectedItem}
+            className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Выбрать
+          </button>
+        </>
       }
     >
       <div className="flex flex-col gap-4 pb-16">
@@ -783,25 +794,28 @@ function PcEquipmentPickerModal({ onClose, onSelect }: PcEquipmentPickerModalPro
           </p>
         ) : (
           <ul className="max-h-80 divide-y divide-slate-100 overflow-auto rounded-xl border border-slate-200">
-            {visibleItems.map((item) => (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  onDoubleClick={() =>
-                    onSelect(item.name, item.serial_number, item.status)
-                  }
-                  className="flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors hover:bg-slate-50"
-                >
-                  <span className="flex flex-col gap-0.5">
-                    <span className="font-medium text-slate-900">{item.name || '—'}</span>
-                    <span className="text-xs tabular-nums text-slate-500">
-                      {item.serial_number || '—'} · {item.status}
+            {visibleItems.map((item) => {
+              const isSelected = selectedItem?.id === item.id;
+              return (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedItem(item)}
+                    className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors ${
+                      isSelected ? 'bg-blue-50' : 'hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="flex flex-col gap-0.5">
+                      <span className={`font-medium ${isSelected ? 'text-blue-900' : 'text-slate-900'}`}>{item.name || '—'}</span>
+                      <span className="text-xs tabular-nums text-slate-500">
+                        {item.serial_number || '—'} · {item.status}
+                      </span>
                     </span>
-                  </span>
-                  <span className="text-xs text-slate-400">Двойной клик для выбора</span>
-                </button>
-              </li>
-            ))}
+                    {isSelected && <span className="text-xs font-medium text-blue-600">Выбран</span>}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -818,6 +832,7 @@ interface PriceListPickerModalProps {
 
 function PriceListPickerModal({ filter, items, onClose, onSelect }: PriceListPickerModalProps) {
   const [search, setSearch] = useState('');
+  const [selectedPrice, setSelectedPrice] = useState<number | null>(null);
 
   const filteredItems = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -834,13 +849,23 @@ function PriceListPickerModal({ filter, items, onClose, onSelect }: PriceListPic
       title={`Выбор стоимости ИТП — ${filter}`}
       onClose={onClose}
       footer={
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-lg px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
-        >
-          Закрыть
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
+          >
+            Отмена
+          </button>
+          <button
+            type="button"
+            onClick={() => selectedPrice !== null && onSelect(selectedPrice)}
+            disabled={selectedPrice === null}
+            className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Выбрать
+          </button>
+        </>
       }
     >
       <div className="flex flex-col gap-4 pb-16">
@@ -862,23 +887,28 @@ function PriceListPickerModal({ filter, items, onClose, onSelect }: PriceListPic
           </p>
         ) : (
           <ul className="max-h-80 divide-y divide-slate-100 overflow-auto rounded-xl border border-slate-200">
-            {filteredItems.map((item) => (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  onDoubleClick={() => onSelect(item.price)}
-                  className="flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors hover:bg-slate-50"
-                >
-                  <span className="flex flex-col gap-0.5">
-                    <span className="font-medium text-slate-900">{item.work_name}</span>
-                    <span className="text-xs tabular-nums text-slate-500">
-                      {item.price.toFixed(3)} · коэф. {item.coefficient.toFixed(3)}
+            {filteredItems.map((item) => {
+              const isSelected = selectedPrice === item.price;
+              return (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPrice(item.price)}
+                    className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors ${
+                      isSelected ? 'bg-blue-50' : 'hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="flex flex-col gap-0.5">
+                      <span className={`font-medium ${isSelected ? 'text-blue-900' : 'text-slate-900'}`}>{item.work_name}</span>
+                      <span className="text-xs tabular-nums text-slate-500">
+                        {item.price.toFixed(3)} · коэф. {item.coefficient.toFixed(3)}
+                      </span>
                     </span>
-                  </span>
-                  <span className="text-xs text-slate-400">Двойной клик для выбора</span>
-                </button>
-              </li>
-            ))}
+                    {isSelected && <span className="text-xs font-medium text-blue-600">Выбран</span>}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

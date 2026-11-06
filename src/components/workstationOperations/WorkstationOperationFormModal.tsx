@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { FileText, KeyRound, Plus, TriangleAlert, Cloud } from 'lucide-react';
 import ClientPicker from '@/components/ui/ClientPicker';
 import Modal from '@/components/ui/Modal';
@@ -6,7 +6,6 @@ import FormField, { inputClassName } from '@/components/ui/FormField';
 import ModelPicker from '@/components/cashRegisters/ModelPicker';
 import TokenFormModal from '@/components/tokens/TokenFormModal';
 import CloudCashRegisterFormModal from '@/components/cloudCashRegisters/CloudCashRegisterFormModal';
-import PcEquipmentFormModal from '@/components/pcEquipment/PcEquipmentFormModal';
 import ClientFormModal from '@/components/clients/ClientFormModal';
 import TokenPicker from '@/components/workstations/TokenPicker';
 import { createWorkstationOperation, updateWorkstationOperation } from '@/lib/api/workstationOperations';
@@ -95,7 +94,6 @@ export default function WorkstationOperationFormModal({
   const [clientFormOpen, setClientFormOpen] = useState(false);
   const [tokenFormOpen, setTokenFormOpen] = useState<null | 'ikassa' | 'cpi'>(null);
   const [cloudCashRegisterFormOpen, setCloudCashRegisterFormOpen] = useState(false);
-  const [pcEquipmentFormOpen, setPcEquipmentFormOpen] = useState(false);
 
   const isRegistration = operationType === 'registration';
   const needsAddress = operationType === 'registration' || operationType === 'address_change';
@@ -144,10 +142,7 @@ export default function WorkstationOperationFormModal({
     loadClientData();
   }, [loadClientData]);
 
-  const models = useMemo(
-    () => allModels.filter((m) => m.model.toLowerCase().includes('dusik')),
-    [allModels],
-  );
+  const models = allModels;
 
   const updateSlot = (slot: 1 | 2, patch: Partial<PcSlot>) => {
     if (slot === 1) setSlot1((prev) => ({ ...prev, ...patch }));
@@ -358,7 +353,7 @@ ${tableRows}
           </h3>
         </div>
 
-        <FormField label="Модель ПК" htmlFor={`${prefix}-model`} hint={modelsLoading ? 'Загрузка...' : 'Только модели Dusik'}>
+        <FormField label="Модель ПК" htmlFor={`${prefix}-model`} hint={modelsLoading ? 'Загрузка...' : undefined}>
           <ModelPicker
             id={`${prefix}-model`}
             models={models}
@@ -491,14 +486,6 @@ ${tableRows}
               >
                 <Cloud className="h-4 w-4" />
                 DusicCloud
-              </button>
-              <button
-                type="button"
-                onClick={() => setPcEquipmentFormOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800"
-              >
-                <Plus className="h-4 w-4" />
-                Оборудование
               </button>
             </div>
           </FormField>
@@ -698,14 +685,6 @@ ${tableRows}
             setCloudCashRegisterFormOpen(false);
             loadClientData();
           }}
-        />
-      )}
-
-      {pcEquipmentFormOpen && (
-        <PcEquipmentFormModal
-          item={null}
-          onClose={() => setPcEquipmentFormOpen(false)}
-          onSaved={() => setPcEquipmentFormOpen(false)}
         />
       )}
 
