@@ -270,22 +270,20 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
           </FormField>
         )}
 
-        {isCpi && (
-          <FormField label="Статус токена" htmlFor="token-status">
-            <select
-              id="token-status"
-              className={inputClassName}
-              value={values.status}
-              onChange={(event) => updateField('status', event.target.value as TokenStatus)}
-            >
-              {TOKEN_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
-                </option>
-              ))}
-            </select>
-          </FormField>
-        )}
+        <FormField label="Статус токена" htmlFor="token-status">
+          <select
+            id="token-status"
+            className={inputClassName}
+            value={values.status}
+            onChange={(event) => updateField('status', event.target.value as TokenStatus)}
+          >
+            {TOKEN_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </option>
+            ))}
+          </select>
+        </FormField>
 
         {isCpi && (
           <FormField label="Оборудование" htmlFor="token-equipment-name">
