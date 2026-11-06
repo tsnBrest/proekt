@@ -33,6 +33,7 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
   const [clientsError, setClientsError] = useState('');
   const [cloudRegisters, setCloudRegisters] = useState<CloudCashRegister[]>([]);
   const [cloudLoading, setCloudLoading] = useState(false);
+  const [selectedCloudId, setSelectedCloudId] = useState('');
   const [allTokens, setAllTokens] = useState<Token[]>([]);
   const [tokensLoading, setTokensLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -66,6 +67,7 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
   }, []);
 
   useEffect(() => {
+    setSelectedCloudId('');
     if (!values.client_id) {
       setCloudRegisters([]);
       return;
@@ -178,11 +180,12 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
             <select
               id="workstation-model"
               className={inputClassName}
-              value={values.model}
+              value={selectedCloudId}
               onChange={(event) => {
-                const selected = cloudRegisters.find((r) => r.pc_model === event.target.value);
-                updateField('model', event.target.value);
+                const selected = cloudRegisters.find((r) => r.id === event.target.value);
+                setSelectedCloudId(event.target.value);
                 if (selected) {
+                  updateField('model', selected.pc_model || '');
                   updateField('software_version', selected.pc_software_version || '');
                   updateField('installation_address', selected.pc_installation_address || '');
                 }
@@ -191,8 +194,8 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
             >
               <option value="">{cloudLoading ? 'Загрузка...' : 'Выберите модель'}</option>
               {cloudRegisters.map((reg) => (
-                <option key={reg.id} value={reg.pc_model}>
-                  {reg.pc_model}
+                <option key={reg.id} value={reg.id}>
+                  {reg.pc_model}{reg.pc_installation_address ? ` — ${reg.pc_installation_address}` : ''}
                 </option>
               ))}
             </select>
@@ -214,7 +217,8 @@ export default function WorkstationFormModal({ workstation, onClose, onSaved }: 
               type="checkbox"
               checked={values.is_cloud}
               onChange={(event) => {
-                setValues((prev) => ({ ...prev, is_cloud: event.target.checked, model: '', software_version: '' }));
+                setSelectedCloudId('');
+                setValues((prev) => ({ ...prev, is_cloud: event.target.checked, model: '', software_version: '', installation_address: '' }));
                 setErrors((prev) => ({ ...prev, model: undefined }));
               }}
               className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
