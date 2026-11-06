@@ -30,6 +30,21 @@
   animation: modal-pop-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+@keyframes dock-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dock-button {
+  animation: dock-slide-up 0.2s ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .modal-backdrop,
   .modal-panel {

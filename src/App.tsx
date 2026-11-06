@@ -23,6 +23,7 @@ import ContractsPage from '@/components/contracts/ContractsPage';
 import TradeObjectTypesPage from '@/components/tradeObjectTypes/TradeObjectTypesPage';
 import TokenBasesPage from '@/components/tokenBases/TokenBasesPage';
 import DocumentTemplatesPage from '@/components/documentTemplates/DocumentTemplatesPage';
+import { CollapsedDock } from '@/components/ui/Modal';
 import type { LucideIcon } from 'lucide-react';
 import type { CashRegisterOperationType, WorkstationOperationType } from '@/types/directory';
 
@@ -285,6 +286,7 @@ function App() {
           </div>
         )}
       </main>
+      <CollapsedDock />
     </div>
   );
 }
