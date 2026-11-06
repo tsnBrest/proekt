@@ -80,6 +80,8 @@ export interface Token {
   pc_software_version: string;
   equipment_model: string;
   equipment_serial_number: string;
+  equipment_name: string;
+  equipment_status: string;
   installation_name: string;
   pc_installation_address: string;
   working_hours: string;
@@ -92,6 +94,18 @@ export interface Token {
 }
 
 export type TokenInput = Omit<Token, 'id' | 'client'>;
+
+export type PcEquipmentStatus = 'аренда банка' | 'аренда ЦТО' | 'покупка в Анъюск' | 'собственность клиента';
+
+export interface PcEquipment {
+  id: string;
+  name: string;
+  serial_number: string;
+  status: PcEquipmentStatus;
+  supplier: string;
+}
+
+export type PcEquipmentInput = Omit<PcEquipment, 'id'>;
 
 export type TokenBatchOperatorLabel = 'АЙЭМЛЭБ' | 'ЦПИ';
 

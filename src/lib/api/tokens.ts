@@ -12,7 +12,7 @@ export const TOKEN_STATUSES = [
 ] as const;
 
 const TOKEN_FIELDS =
-  'id, number, operator_type, client_id, pc_model, pc_software_version, equipment_model, equipment_serial_number, installation_name, pc_installation_address, working_hours, gln, to_type, to_name, contract_number, status, client:clients(name)';
+  'id, number, operator_type, client_id, pc_model, pc_software_version, equipment_model, equipment_serial_number, equipment_name, equipment_status, installation_name, pc_installation_address, working_hours, gln, to_type, to_name, contract_number, status, client:clients(name)';
 
 export async function fetchTokens(operatorType?: TokenOperatorType): Promise<Token[]> {
   let query = supabase

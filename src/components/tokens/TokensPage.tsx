@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { KeyRound, Pencil, Plus, Search, Trash2, TriangleAlert } from 'lucide-react';
+import { KeyRound, Eye, Pencil, Plus, Search, Trash2, TriangleAlert } from 'lucide-react';
 import TokenFormModal from '@/components/tokens/TokenFormModal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import Modal from '@/components/ui/Modal';
 import { deleteToken, fetchTokens } from '@/lib/api/tokens';
 import type { Token, TokenOperatorType } from '@/types/directory';
 
-type EditorState = { mode: 'create' } | { mode: 'edit'; token: Token } | null;
+type EditorState = { mode: 'create' } | { mode: 'edit'; token: Token } | { mode: 'view'; token: Token } | null;
 
 interface TokensPageProps {
   operatorType: TokenOperatorType;
@@ -30,6 +31,7 @@ export default function TokensPage({ operatorType }: TokensPageProps) {
   const [loadError, setLoadError] = useState('');
   const [search, setSearch] = useState('');
   const [editor, setEditor] = useState<EditorState>(null);
+  const [viewer, setViewer] = useState<Token | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Token | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
@@ -169,6 +171,14 @@ export default function TokensPage({ operatorType }: TokensPageProps) {
                   <div className="flex items-center justify-end gap-1">
                     <button
                       type="button"
+                      onClick={() => setViewer(item)}
+                      aria-label={`Просмотр ${item.number}`}
+                      className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setEditor({ mode: 'edit', token: item })}
                       aria-label={`Редактировать ${item.number}`}
                       className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900"
@@ -235,6 +245,10 @@ export default function TokensPage({ operatorType }: TokensPageProps) {
         />
       )}
 
+      {viewer && (
+        <TokenViewModal token={viewer} onClose={() => setViewer(null)} />
+      )}
+
       {pendingDelete && (
         <ConfirmDialog
           title="Удалить токен?"
@@ -247,5 +261,54 @@ export default function TokensPage({ operatorType }: TokensPageProps) {
         />
       )}
     </section>
+  );
+}
+
+interface TokenViewModalProps {
+  token: Token;
+  onClose: () => void;
+}
+
+function TokenViewModal({ token, onClose }: TokenViewModalProps) {
+  const rows: { label: string; value: string }[] = [
+    { label: 'Номер токена', value: token.number },
+    { label: 'Принадлежность', value: token.client?.name ?? '—' },
+    { label: 'Статус токена', value: token.status },
+    { label: 'Модель ПК', value: token.pc_model || '—' },
+    { label: 'Версия ПО', value: token.pc_software_version || '—' },
+    { label: 'Оборудование', value: token.equipment_name || '—' },
+    { label: 'Заводской номер', value: token.equipment_serial_number || '—' },
+    { label: 'Статус оборудования', value: token.equipment_status || '—' },
+    { label: 'Адрес установки ПК', value: token.pc_installation_address || '—' },
+    { label: 'Режим работы', value: token.working_hours || '—' },
+    { label: 'GLN', value: token.gln || '—' },
+    { label: 'Вид торгового объекта', value: token.to_type || '—' },
+    { label: '№ договора', value: token.contract_number || '—' },
+  ];
+
+  return (
+    <Modal
+      maxWidth="max-w-2xl"
+      title={`Просмотр токена — ${token.number}`}
+      onClose={onClose}
+      footer={
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+        >
+          Закрыть
+        </button>
+      }
+    >
+      <div className="flex flex-col gap-3 pb-16">
+        {rows.map((row) => (
+          <div key={row.label} className="flex flex-col gap-0.5 border-b border-slate-100 pb-2">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">{row.label}</span>
+            <span className="text-sm text-slate-900">{row.value}</span>
+          </div>
+        ))}
+      </div>
+    </Modal>
   );
 }

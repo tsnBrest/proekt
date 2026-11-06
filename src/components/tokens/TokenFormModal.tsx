@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { FileText, Plus, Search, Users, Database } from 'lucide-react';
+import { FileText, Plus, Search, Users, Database, Monitor } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import FormField, { inputClassName } from '@/components/ui/FormField';
 import ModelPicker from '@/components/cashRegisters/ModelPicker';
 import ContractFormModal from '@/components/contracts/ContractFormModal';
 import { fetchTokenBatchesByOperator, deleteTokenBatchByNumber } from '@/lib/api/tokenBatches';
+import { fetchPcEquipment } from '@/lib/api/pcEquipment';
 import { createToken, updateToken, DUPLICATE_ERROR_CODE, TOKEN_STATUSES } from '@/lib/api/tokens';
 import { fetchEquipmentModels } from '@/lib/api/equipmentModels';
 import { fetchTradeObjectTypes } from '@/lib/api/tradeObjectTypes';
@@ -14,6 +15,7 @@ import type {
   Client,
   Contract,
   EquipmentModel,
+  PcEquipment,
   Token,
   TokenBatch,
   TokenInput,
@@ -42,6 +44,8 @@ type ExtendedValues = {
   pc_software_version: string;
   equipment_model: string;
   equipment_serial_number: string;
+  equipment_name: string;
+  equipment_status: string;
   installation_name: string;
   pc_installation_address: string;
   working_hours: string;
@@ -61,6 +65,8 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
     pc_software_version: token?.pc_software_version ?? '',
     equipment_model: token?.equipment_model ?? '',
     equipment_serial_number: token?.equipment_serial_number ?? '',
+    equipment_name: token?.equipment_name ?? '',
+    equipment_status: token?.equipment_status ?? '',
     installation_name: token?.installation_name ?? '',
     pc_installation_address: token?.pc_installation_address ?? '',
     working_hours: token?.working_hours ?? '',
@@ -81,6 +87,7 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
   const [contractsOpen, setContractsOpen] = useState(false);
   const [clientsOpen, setClientsOpen] = useState(false);
   const [tokenBaseOpen, setTokenBaseOpen] = useState(false);
+  const [pcEquipmentOpen, setPcEquipmentOpen] = useState(false);
 
   useEffect(() => {
     fetchEquipmentModels()
@@ -131,6 +138,8 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
         pc_software_version: values.pc_software_version,
         equipment_model: isCpi ? '' : values.equipment_model,
         equipment_serial_number: isCpi ? '' : values.equipment_serial_number,
+        equipment_name: isCpi ? values.equipment_name : '',
+        equipment_status: isCpi ? values.equipment_status : '',
         installation_name: isCpi ? '' : values.installation_name,
         pc_installation_address: values.pc_installation_address,
         working_hours: values.working_hours,
@@ -266,6 +275,57 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
                   {status.charAt(0).toUpperCase() + status.slice(1)}
                 </option>
               ))}
+            </select>
+          </FormField>
+        )}
+
+        {isCpi && (
+          <FormField label="Оборудование" htmlFor="token-equipment-name">
+            <div className="flex items-stretch gap-2">
+              <input
+                id="token-equipment-name"
+                className={inputClassName}
+                value={values.equipment_name}
+                onChange={(event) => updateField('equipment_name', event.target.value)}
+                placeholder="Наименование оборудования"
+              />
+              <button
+                type="button"
+                onClick={() => setPcEquipmentOpen(true)}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-slate-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800"
+              >
+                <Plus className="h-4 w-4" />
+                Добавить
+              </button>
+            </div>
+          </FormField>
+        )}
+
+        {isCpi && (
+          <FormField label="Заводской номер оборудования" htmlFor="token-equipment-serial-cpi">
+            <input
+              id="token-equipment-serial-cpi"
+              className={inputClassName}
+              value={values.equipment_serial_number}
+              onChange={(event) => updateField('equipment_serial_number', event.target.value)}
+              placeholder="Заводской номер"
+            />
+          </FormField>
+        )}
+
+        {isCpi && (
+          <FormField label="Статус оборудования" htmlFor="token-equipment-status">
+            <select
+              id="token-equipment-status"
+              className={inputClassName}
+              value={values.equipment_status}
+              onChange={(event) => updateField('equipment_status', event.target.value)}
+            >
+              <option value="">Выберите статус</option>
+              <option value="аренда банка">Аренда банка</option>
+              <option value="аренда ЦТО">Аренда ЦТО</option>
+              <option value="покупка в Анъюск">Покупка в Анъюск</option>
+              <option value="собственность клиента">Собственность клиента</option>
             </select>
           </FormField>
         )}
@@ -469,6 +529,18 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
           onSelect={(tokenNumber) => {
             updateField('number', tokenNumber);
             setTokenBaseOpen(false);
+          }}
+        />
+      )}
+
+      {pcEquipmentOpen && (
+        <PcEquipmentPickerModal
+          onClose={() => setPcEquipmentOpen(false)}
+          onSelect={(name, serialNumber, status) => {
+            updateField('equipment_name', name);
+            updateField('equipment_serial_number', serialNumber);
+            updateField('equipment_status', status);
+            setPcEquipmentOpen(false);
           }}
         />
       )}
@@ -809,6 +881,106 @@ function TokenBasePickerModal({ onClose, onSelect }: TokenBasePickerModalProps) 
                         {new Date(batch.arrival_date).toLocaleDateString('ru-RU')}
                       </span>
                     )}
+                  </span>
+                  <span className="text-xs text-slate-400">Двойной клик для выбора</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+interface PcEquipmentPickerModalProps {
+  onClose: () => void;
+  onSelect: (name: string, serialNumber: string, status: string) => void;
+}
+
+function PcEquipmentPickerModal({ onClose, onSelect }: PcEquipmentPickerModalProps) {
+  const [items, setItems] = useState<PcEquipment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [search, setSearch] = useState('');
+
+  const loadItems = useCallback(() => {
+    setLoading(true);
+    setLoadError('');
+    fetchPcEquipment()
+      .then(setItems)
+      .catch(() => setLoadError('Не удалось загрузить справочник оборудования ПК.'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    loadItems();
+  }, [loadItems]);
+
+  const visibleItems = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return items;
+    return items.filter(
+      (item) =>
+        item.name.toLowerCase().includes(query) ||
+        item.serial_number.toLowerCase().includes(query) ||
+        item.status.toLowerCase().includes(query) ||
+        item.supplier.toLowerCase().includes(query),
+    );
+  }, [items, search]);
+
+  return (
+    <Modal
+      maxWidth="max-w-3xl"
+      title="Справочник оборудования ПК"
+      onClose={onClose}
+      footer={
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
+        >
+          Закрыть
+        </button>
+      }
+    >
+      <div className="flex flex-col gap-4 pb-16">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Поиск по наименованию, номеру, статусу"
+            aria-label="Поиск оборудования ПК"
+            className={`${inputClassName} pl-10`}
+          />
+        </div>
+
+        {loading ? (
+          <p className="py-8 text-center text-sm text-slate-500">Загрузка...</p>
+        ) : loadError ? (
+          <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{loadError}</p>
+        ) : visibleItems.length === 0 ? (
+          <p className="py-8 text-center text-sm text-slate-500">
+            {items.length === 0 ? 'Оборудования ПК пока нет.' : 'Ничего не найдено.'}
+          </p>
+        ) : (
+          <ul className="max-h-80 divide-y divide-slate-100 overflow-auto rounded-xl border border-slate-200">
+            {visibleItems.map((item) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  onDoubleClick={() =>
+                    onSelect(item.name, item.serial_number, item.status)
+                  }
+                  className="flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors hover:bg-slate-50"
+                >
+                  <span className="flex flex-col gap-0.5">
+                    <span className="font-medium text-slate-900">{item.name || '—'}</span>
+                    <span className="text-xs tabular-nums text-slate-500">
+                      {item.serial_number || '—'} · {item.status}
+                    </span>
                   </span>
                   <span className="text-xs text-slate-400">Двойной клик для выбора</span>
                 </button>

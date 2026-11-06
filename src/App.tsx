@@ -14,6 +14,7 @@ import CashRegistersPage from '@/components/cashRegisters/CashRegistersPage';
 import EquipmentModelsPage from '@/components/equipmentModels/EquipmentModelsPage';
 import OperationsPage from '@/components/operations/OperationsPage';
 import ServicedEquipmentPage from '@/components/servicedEquipment/ServicedEquipmentPage';
+import PcEquipmentPage from '@/components/pcEquipment/PcEquipmentPage';
 import TaximetersPage from '@/components/taximeters/TaximetersPage';
 import TokensPage from '@/components/tokens/TokensPage';
 import WorkstationOperationsPage from '@/components/workstationOperations/WorkstationOperationsPage';
@@ -34,6 +35,7 @@ type DirectorySubtab =
   | 'banks'
   | 'cashRegisters'
   | 'servicedEquipment'
+  | 'pcEquipment'
   | 'models'
   | 'contracts'
   | 'tradeObjectTypes'
@@ -64,6 +66,7 @@ const DIRECTORY_SUBTABS: Subtab[] = [
   { id: 'banks', label: 'Банки' },
   { id: 'cashRegisters', label: 'Справочник касс' },
   { id: 'servicedEquipment', label: 'Обслуживаемое оборудование' },
+  { id: 'pcEquipment', label: 'Оборудование ПК' },
   { id: 'models', label: 'Модели' },
   { id: 'contracts', label: 'Справочник договоров' },
   { id: 'tradeObjectTypes', label: 'Типы торговых объектов' },
@@ -162,6 +165,8 @@ function App() {
         return <CashRegistersPage />;
       case 'servicedEquipment':
         return <ServicedEquipmentPage />;
+      case 'pcEquipment':
+        return <PcEquipmentPage />;
       case 'models':
         return <EquipmentModelsPage />;
       case 'contracts':
