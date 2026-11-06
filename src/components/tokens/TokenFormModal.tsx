@@ -4,6 +4,7 @@ import Modal from '@/components/ui/Modal';
 import FormField, { inputClassName } from '@/components/ui/FormField';
 import ModelPicker from '@/components/cashRegisters/ModelPicker';
 import ContractFormModal from '@/components/contracts/ContractFormModal';
+import ClientFormModal from '@/components/clients/ClientFormModal';
 import PcEquipmentFormModal from '@/components/pcEquipment/PcEquipmentFormModal';
 import { fetchTokenBatchesByOperator, deleteTokenBatchByNumber } from '@/lib/api/tokenBatches';
 import { fetchPcEquipment } from '@/lib/api/pcEquipment';
@@ -97,6 +98,7 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
   const [pcEquipmentFormOpen, setPcEquipmentFormOpen] = useState(false);
   const [priceListOpen, setPriceListOpen] = useState(false);
   const [priceList, setPriceList] = useState<PriceListItem[]>([]);
+  const [clientFormOpen, setClientFormOpen] = useState(false);
   const [tokenStatuses, setTokenStatuses] = useState<Status[]>([]);
 
   useEffect(() => {
@@ -126,10 +128,10 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
 
   const isCpi = operatorType === 'cpi';
 
-  const models = useMemo(() => {
-    if (isCpi) return allModels.filter((m) => m.model.toLowerCase().includes('titan'));
-    return allModels.filter((m) => m.model.toLowerCase().includes('ikassa'));
-  }, [allModels, isCpi]);
+  const models = useMemo(
+    () => allModels.filter((m) => m.model.toLowerCase().includes('dusik')),
+    [allModels],
+  );
 
   const updateField = useCallback(<K extends keyof ExtendedValues>(key: K, value: ExtendedValues[K]) => {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -357,13 +359,7 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
         <FormField
           label="Модель ПК"
           htmlFor="token-pc-model"
-          hint={
-            modelsLoading
-              ? 'Загрузка моделей...'
-              : isCpi
-                ? 'Только модели Titan'
-                : 'Только модели iKassa'
-          }
+          hint={modelsLoading ? 'Загрузка моделей...' : 'Только модели Dusik'}
         >
           <ModelPicker
             id="token-pc-model"
@@ -533,12 +529,25 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
 
       {priceListOpen && (
         <PriceListPickerModal
-          filter={isCpi ? 'ЦПИ ИТП' : 'iKassa ИТП'}
+          filter="Dusik ИТП"
           items={priceList}
           onClose={() => setPriceListOpen(false)}
           onSelect={(price) => {
             updateField('itp_price', String(price));
             setPriceListOpen(false);
+          }}
+        />
+      )}
+
+      {clientFormOpen && (
+        <ClientFormModal
+          client={null}
+          onClose={() => setClientFormOpen(false)}
+          onSaved={(created) => {
+            setClientFormOpen(false);
+            if (created) {
+              setValues((prev) => ({ ...prev, client_id: created.id, client_name: created.name }));
+            }
           }}
         />
       )}
@@ -699,13 +708,20 @@ function ClientPickerModal({ currentClientId, onClose, onSelect }: ClientPickerM
   const [loadError, setLoadError] = useState('');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(currentClientId);
+  const [addFormOpen, setAddFormOpen] = useState(false);
 
-  useEffect(() => {
+  const loadClients = useCallback(() => {
+    setLoading(true);
+    setLoadError('');
     fetchClients()
       .then(setItems)
       .catch(() => setLoadError('Не удалось загрузить клиентов.'))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadClients();
+  }, [loadClients]);
 
   const visibleItems = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -726,6 +742,14 @@ function ClientPickerModal({ currentClientId, onClose, onSelect }: ClientPickerM
       onClose={onClose}
       footer={
         <>
+          <button
+            type="button"
+            onClick={() => setAddFormOpen(true)}
+            className="mr-auto inline-flex items-center gap-1.5 rounded-lg bg-slate-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800"
+          >
+            <Plus className="h-4 w-4" />
+            Добавить клиента
+          </button>
           <button
             type="button"
             onClick={onClose}
@@ -792,6 +816,21 @@ function ClientPickerModal({ currentClientId, onClose, onSelect }: ClientPickerM
           </ul>
         )}
       </div>
+
+      {addFormOpen && (
+        <ClientFormModal
+          client={null}
+          onClose={() => setAddFormOpen(false)}
+          onSaved={(created) => {
+            setAddFormOpen(false);
+            if (created) {
+              onSelect(created.id, created.name);
+            } else {
+              loadClients();
+            }
+          }}
+        />
+      )}
     </Modal>
   );
 }

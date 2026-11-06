@@ -13,7 +13,7 @@ type FormErrors = Partial<Record<keyof FormValues, string>>;
 interface ClientFormModalProps {
   client: Client | null;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (created?: Client) => void;
 }
 
 const DIRECTOR_BASIS_OPTIONS = [
@@ -190,10 +190,11 @@ export default function ClientFormModal({ client, onClose, onSaved }: ClientForm
     try {
       if (client) {
         await updateClient(client.id, payload);
+        onSaved();
       } else {
-        await createClient(payload);
+        const created = await createClient(payload);
+        onSaved(created);
       }
-      onSaved();
       onClose();
     } catch {
       setSubmitError('Не удалось сохранить клиента. Проверьте данные и попробуйте еще раз.');

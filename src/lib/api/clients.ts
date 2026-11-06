@@ -29,9 +29,14 @@ export async function fetchRegisteredByValues(): Promise<string[]> {
   return result;
 }
 
-export async function createClient(input: ClientInput): Promise<void> {
-  const { error } = await supabase.from('clients').insert(input);
+export async function createClient(input: ClientInput): Promise<Client> {
+  const { data, error } = await supabase
+    .from('clients')
+    .insert(input)
+    .select('*, bank:banks(name)')
+    .single();
   if (error) throw error;
+  return data as Client;
 }
 
 export async function updateClient(id: string, input: ClientInput): Promise<void> {
