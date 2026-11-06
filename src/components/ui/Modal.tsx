@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Minus, X } from 'lucide-react';
 import { useModal } from '@/components/ui/ModalProvider';
@@ -16,6 +16,8 @@ export default function Modal({ title, onClose, children, footer, maxWidth = 'ma
   const idRef = useRef(++modalIdSeq);
   const id = idRef.current;
   const [collapsed, setLocalCollapsed] = useState(false);
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
+  const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
 
   const entry = entries.find((e) => e.id === id);
   const isCollapsed = entry?.collapsed ?? collapsed;
@@ -43,7 +45,8 @@ export default function Modal({ title, onClose, children, footer, maxWidth = 'ma
     return () => document.removeEventListener('keydown', handler);
   }, [onClose, isCollapsed]);
 
-  const handleCollapse = () => {
+  const handleCollapse = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setLocalCollapsed(true);
     setCollapsed(id, true);
   };
@@ -54,16 +57,41 @@ export default function Modal({ title, onClose, children, footer, maxWidth = 'ma
     focus(id);
   };
 
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    const panel = e.currentTarget.closest('.modal-panel') as HTMLElement | null;
+    if (!panel) return;
+    const rect = panel.getBoundingClientRect();
+    const origX = position?.x ?? rect.left;
+    const origY = position?.y ?? rect.top;
+    dragRef.current = { startX: e.clientX, startY: e.clientY, origX, origY };
+    const onMove = (ev: MouseEvent) => {
+      if (!dragRef.current) return;
+      const dx = ev.clientX - dragRef.current.startX;
+      const dy = ev.clientY - dragRef.current.startY;
+      setPosition({ x: dragRef.current.origX + dx, y: dragRef.current.origY + dy });
+    };
+    const onUp = () => {
+      dragRef.current = null;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [position]);
+
   if (typeof document === 'undefined') return null;
 
   return createPortal(
     <>
       {!isCollapsed && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm modal-backdrop"
+          className="fixed inset-0 z-50 bg-slate-900/20 backdrop-blur-[2px]"
           style={{ zIndex: entry?.zIndex ?? 50 }}
           onMouseDown={(e) => {
-            if (e.target === e.currentTarget) onClose();
+            if (e.target === e.currentTarget) {
+              focus(id);
+            }
           }}
         >
           <div
@@ -71,12 +99,23 @@ export default function Modal({ title, onClose, children, footer, maxWidth = 'ma
             aria-modal="true"
             aria-labelledby={`modal-title-${id}`}
             className={`modal-panel flex max-h-[90vh] w-full ${maxWidth} flex-col rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/5`}
+            style={{
+              position: 'absolute',
+              left: position ? `${position.x}px` : undefined,
+              top: position ? `${position.y}px` : undefined,
+              transform: position ? 'none' : undefined,
+              margin: position ? '0' : undefined,
+            }}
+            onMouseDown={() => focus(id)}
           >
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+            <div
+              className="flex cursor-move items-center justify-between border-b border-slate-200 px-6 py-4 select-none"
+              onMouseDown={handleDragStart}
+            >
               <h2 id={`modal-title-${id}`} className="text-lg font-semibold text-slate-900">
                 {title}
               </h2>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1" onMouseDown={(e) => e.stopPropagation()}>
                 <button
                   type="button"
                   onClick={handleCollapse}
@@ -97,7 +136,10 @@ export default function Modal({ title, onClose, children, footer, maxWidth = 'ma
             </div>
             <div className="overflow-y-auto px-6 py-6">{children}</div>
             {footer && (
-              <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 rounded-b-2xl">
+              <div
+                className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 rounded-b-2xl"
+                onMouseDown={(e) => e.stopPropagation()}
+              >
                 {footer}
               </div>
             )}

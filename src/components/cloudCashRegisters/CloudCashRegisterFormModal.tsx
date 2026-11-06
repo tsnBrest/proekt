@@ -4,6 +4,7 @@ import Modal from '@/components/ui/Modal';
 import FormField, { inputClassName } from '@/components/ui/FormField';
 import ModelPicker from '@/components/cashRegisters/ModelPicker';
 import ContractFormModal from '@/components/contracts/ContractFormModal';
+import PcEquipmentFormModal from '@/components/pcEquipment/PcEquipmentFormModal';
 import { fetchPcEquipment } from '@/lib/api/pcEquipment';
 import { createCloudCashRegister, updateCloudCashRegister } from '@/lib/api/cloudCashRegisters';
 import { fetchEquipmentModels } from '@/lib/api/equipmentModels';
@@ -76,6 +77,7 @@ export default function CloudCashRegisterFormModal({
   const [contractsOpen, setContractsOpen] = useState(false);
   const [clientsOpen, setClientsOpen] = useState(false);
   const [pcEquipmentOpen, setPcEquipmentOpen] = useState(false);
+  const [pcEquipmentFormOpen, setPcEquipmentFormOpen] = useState(false);
   const [priceListOpen, setPriceListOpen] = useState(false);
   const [priceList, setPriceList] = useState<PriceListItem[]>([]);
 
@@ -235,7 +237,15 @@ export default function CloudCashRegisterFormModal({
               className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-slate-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800"
             >
               <Plus className="h-4 w-4" />
-              Добавить
+              Выбрать
+            </button>
+            <button
+              type="button"
+              onClick={() => setPcEquipmentFormOpen(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-slate-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800"
+            >
+              <Plus className="h-4 w-4" />
+              Оборудование
             </button>
           </div>
         </FormField>
@@ -434,6 +444,14 @@ export default function CloudCashRegisterFormModal({
             updateField('itp_price', String(price));
             setPriceListOpen(false);
           }}
+        />
+      )}
+
+      {pcEquipmentFormOpen && (
+        <PcEquipmentFormModal
+          item={null}
+          onClose={() => setPcEquipmentFormOpen(false)}
+          onSaved={() => setPcEquipmentFormOpen(false)}
         />
       )}
     </Modal>

@@ -4,6 +4,7 @@ import Modal from '@/components/ui/Modal';
 import FormField, { inputClassName } from '@/components/ui/FormField';
 import ModelPicker from '@/components/cashRegisters/ModelPicker';
 import ContractFormModal from '@/components/contracts/ContractFormModal';
+import PcEquipmentFormModal from '@/components/pcEquipment/PcEquipmentFormModal';
 import { fetchTokenBatchesByOperator, deleteTokenBatchByNumber } from '@/lib/api/tokenBatches';
 import { fetchPcEquipment } from '@/lib/api/pcEquipment';
 import { createToken, updateToken, DUPLICATE_ERROR_CODE, TOKEN_STATUSES } from '@/lib/api/tokens';
@@ -92,6 +93,7 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
   const [clientsOpen, setClientsOpen] = useState(false);
   const [tokenBaseOpen, setTokenBaseOpen] = useState(false);
   const [pcEquipmentOpen, setPcEquipmentOpen] = useState(false);
+  const [pcEquipmentFormOpen, setPcEquipmentFormOpen] = useState(false);
   const [priceListOpen, setPriceListOpen] = useState(false);
   const [priceList, setPriceList] = useState<PriceListItem[]>([]);
 
@@ -308,7 +310,15 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
               className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-slate-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800"
             >
               <Plus className="h-4 w-4" />
-              Добавить
+              Выбрать
+            </button>
+            <button
+              type="button"
+              onClick={() => setPcEquipmentFormOpen(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-slate-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800"
+            >
+              <Plus className="h-4 w-4" />
+              Оборудование
             </button>
           </div>
         </FormField>
@@ -524,6 +534,14 @@ export default function TokenFormModal({ operatorType, token, onClose, onSaved }
             updateField('itp_price', String(price));
             setPriceListOpen(false);
           }}
+        />
+      )}
+
+      {pcEquipmentFormOpen && (
+        <PcEquipmentFormModal
+          item={null}
+          onClose={() => setPcEquipmentFormOpen(false)}
+          onSaved={() => setPcEquipmentFormOpen(false)}
         />
       )}
     </Modal>

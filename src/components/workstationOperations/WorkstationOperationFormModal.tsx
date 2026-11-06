@@ -6,6 +6,7 @@ import FormField, { inputClassName } from '@/components/ui/FormField';
 import ModelPicker from '@/components/cashRegisters/ModelPicker';
 import TokenFormModal from '@/components/tokens/TokenFormModal';
 import CloudCashRegisterFormModal from '@/components/cloudCashRegisters/CloudCashRegisterFormModal';
+import PcEquipmentFormModal from '@/components/pcEquipment/PcEquipmentFormModal';
 import ClientFormModal from '@/components/clients/ClientFormModal';
 import TokenPicker from '@/components/workstations/TokenPicker';
 import { createWorkstationOperation, updateWorkstationOperation } from '@/lib/api/workstationOperations';
@@ -94,6 +95,7 @@ export default function WorkstationOperationFormModal({
   const [clientFormOpen, setClientFormOpen] = useState(false);
   const [tokenFormOpen, setTokenFormOpen] = useState<null | 'ikassa' | 'cpi'>(null);
   const [cloudCashRegisterFormOpen, setCloudCashRegisterFormOpen] = useState(false);
+  const [pcEquipmentFormOpen, setPcEquipmentFormOpen] = useState(false);
 
   const isRegistration = operationType === 'registration';
   const needsAddress = operationType === 'registration' || operationType === 'address_change';
@@ -403,58 +405,22 @@ ${tableRows}
         </FormField>
 
         {isRegistration && !slot.is_cloud && (
-          <>
-            <FormField
-              label="Токен"
-              htmlFor={`${prefix}-token`}
-              error={errors[`${prefix}_token`]}
-              hint="Токены выбранного клиента"
+          <FormField
+            label="Токен"
+            htmlFor={`${prefix}-token`}
+            error={errors[`${prefix}_token`]}
+            hint="Токены выбранного клиента"
+          >
+            <button
+              id={`${prefix}-token`}
+              type="button"
+              onClick={() => clientId && setTokenPickerSlot(slotNum)}
+              disabled={!clientId}
+              className={`${inputClassName} text-left ${slot.token_number ? 'text-slate-900' : 'text-slate-400'} disabled:cursor-not-allowed disabled:opacity-50`}
             >
-              <button
-                id={`${prefix}-token`}
-                type="button"
-                onClick={() => clientId && setTokenPickerSlot(slotNum)}
-                disabled={!clientId}
-                className={`${inputClassName} text-left ${slot.token_number ? 'text-slate-900' : 'text-slate-400'} disabled:cursor-not-allowed disabled:opacity-50`}
-              >
-                {slot.token_number || (clientId ? 'Выберите токен' : 'Сначала выберите клиента')}
-              </button>
-            </FormField>
-
-            {slotNum === 1 && (
-              <FormField label="Новый токен" htmlFor="ws-op-new-token" hint="Создать и привязать к клиенту">
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setTokenFormOpen('ikassa')}
-                    disabled={!clientId}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <KeyRound className="h-4 w-4" />
-                    iKassa
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTokenFormOpen('cpi')}
-                    disabled={!clientId}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <KeyRound className="h-4 w-4" />
-                    ЦПИ
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCloudCashRegisterFormOpen(true)}
-                    disabled={!clientId}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <Cloud className="h-4 w-4" />
-                    DusicCloud
-                  </button>
-                </div>
-              </FormField>
-            )}
-          </>
+              {slot.token_number || (clientId ? 'Выберите токен' : 'Сначала выберите клиента')}
+            </button>
+          </FormField>
         )}
 
         {isRegistration && slot.is_cloud && (
@@ -488,6 +454,48 @@ ${tableRows}
                 </option>
               ))}
             </select>
+          </FormField>
+        )}
+
+        {isRegistration && slotNum === 1 && (
+          <FormField label="Новый токен / облачная касса" htmlFor="ws-op-new-token" hint="Создать и привязать к клиенту">
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setTokenFormOpen('ikassa')}
+                disabled={!clientId}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <KeyRound className="h-4 w-4" />
+                iKassa
+              </button>
+              <button
+                type="button"
+                onClick={() => setTokenFormOpen('cpi')}
+                disabled={!clientId}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <KeyRound className="h-4 w-4" />
+                ЦПИ
+              </button>
+              <button
+                type="button"
+                onClick={() => setCloudCashRegisterFormOpen(true)}
+                disabled={!clientId}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Cloud className="h-4 w-4" />
+                DusicCloud
+              </button>
+              <button
+                type="button"
+                onClick={() => setPcEquipmentFormOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800"
+              >
+                <Plus className="h-4 w-4" />
+                Оборудование
+              </button>
+            </div>
           </FormField>
         )}
 
@@ -685,6 +693,14 @@ ${tableRows}
             setCloudCashRegisterFormOpen(false);
             loadClientData();
           }}
+        />
+      )}
+
+      {pcEquipmentFormOpen && (
+        <PcEquipmentFormModal
+          item={null}
+          onClose={() => setPcEquipmentFormOpen(false)}
+          onSaved={() => setPcEquipmentFormOpen(false)}
         />
       )}
 
